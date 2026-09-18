@@ -1,0 +1,6 @@
+{"type":"system","subtype":"init","session_id":"sanitized-claude","cwd":"/tmp/fixture"}
+{"type":"assistant","session_id":"sanitized-claude","message":{"content":[{"type":"thinking","thinking":"private"}]}}
+{"type":"assistant","session_id":"sanitized-claude","message":{"content":[{"type":"tool_use","id":"tool-1","name":"Edit","input":{}}]}}
+{"type":"user","session_id":"sanitized-claude","message":{"content":[{"type":"tool_result","tool_use_id":"tool-1","content":"updated"}]}}
+{"type":"assistant","session_id":"sanitized-claude","message":{"content":[{"type":"text","text":"Finished safely."}]}}
+{"type":"result","subtype":"success","is_error":false,"result":"Finished safely.","session_id":"sanitized-claude","usage":{"input_tokens":60,"cache_read_input_tokens":12,"cache_creation_input_tokens":4,"output_tokens":9}}

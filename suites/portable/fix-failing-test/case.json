@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 2,
+  "id": "fix-failing-test",
+  "level": "focused",
+  "primaryQuality": "task-effectiveness",
+  "supportingQualities": ["change-discipline", "verification-quality"],
+  "startState": "unsolved",
+  "task": {
+    "prompt": "The test suite in test/ is failing. Fix the code so that `node --test` passes.",
+    "maxSeconds": 120
+  },
+  "grade": {
+    "allowedWrites": ["src/sum.js"],
+    "checks": [
+      {"kind": "exit0", "command": "node --test"},
+      {"kind": "unchanged", "path": "test/sum.test.js"}
+    ]
+  }
+}

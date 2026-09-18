@@ -1,0 +1,8 @@
+{
+  "name": "add-regression-coverage-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

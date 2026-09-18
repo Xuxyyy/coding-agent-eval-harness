@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "portable",
+  "profiles": [
+    {
+      "id": "smoke-v1",
+      "caseIds": [
+        "create-to-spec",
+        "already-correct-no-op",
+        "preserve-user-wip"
+      ],
+      "repeats": 1
+    },
+    {
+      "id": "foundation-v1",
+      "caseIds": [
+        "create-to-spec",
+        "fix-failing-test",
+        "preserve-user-wip",
+        "already-correct-no-op",
+        "follow-repository-instructions",
+        "add-regression-coverage"
+      ],
+      "repeats": 3
+    }
+  ]
+}

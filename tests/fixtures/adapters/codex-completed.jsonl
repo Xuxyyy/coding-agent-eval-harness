@@ -1,0 +1,8 @@
+{"type":"thread.started","thread_id":"sanitized"}
+{"type":"item.completed","item":{"id":"item-1","type":"error","message":"non-fatal tool evidence"}}
+{"type":"future.event","data":{"ignored":true}}
+{"type":"item.completed","item":{"id":"private-1","type":"reasoning","text":"private diagnostic content"}}
+{"type":"item.started","item":{"id":"item-tool","type":"command_execution","command":"pwd"}}
+{"type":"item.completed","item":{"id":"item-tool","type":"command_execution","command":"pwd","status":"completed","aggregated_output":"/tmp"}}
+{"type":"item.completed","item":{"id":"item-2","type":"agent_message","text":"Finished safely."}}
+{"type":"turn.completed","usage":{"input_tokens":50,"cached_input_tokens":10,"output_tokens":8}}

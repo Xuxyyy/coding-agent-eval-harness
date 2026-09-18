@@ -1,0 +1,8 @@
+{
+  "name": "follow-repository-instructions-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

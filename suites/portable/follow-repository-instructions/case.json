@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "follow-repository-instructions",
+  "level": "focused",
+  "primaryQuality": "instruction-adherence",
+  "supportingQualities": ["repository-understanding", "task-effectiveness"],
+  "startState": "unsolved",
+  "task": {
+    "prompt": "Fix the title normalizer so `npm test` passes. Follow the repository instructions in AGENTS.md and do not install dependencies.",
+    "maxSeconds": 120
+  },
+  "grade": {
+    "allowedWrites": ["src/title.js"],
+    "checks": [
+      {"kind": "exit0", "command": "npm test"},
+      {
+        "kind": "matches",
+        "path": "src/title.js",
+        "pattern": "import\\s*\\{\\s*WORD_SEPARATOR\\s*\\}\\s*from\\s*['\\\"]\\.\\/constants\\.js['\\\"]"
+      },
+      {"kind": "exit0", "command": "node verify-instruction.mjs"},
+      {"kind": "unchanged", "path": "AGENTS.md"},
+      {"kind": "unchanged", "path": "verify-instruction.mjs"},
+      {"kind": "unchanged", "path": "src/constants.js"},
+      {"kind": "unchanged", "path": "test/title.test.js"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  }
+}
