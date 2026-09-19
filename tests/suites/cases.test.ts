@@ -45,6 +45,19 @@ const validV2 = {
   },
 };
 
+const validV3 = {
+  ...validV2,
+  schemaVersion: 3,
+  id: 'sample-v3',
+  expectedDisposition: 'implemented',
+  trialChecks: {
+    finalResponse: {required: ['src/a\\.js'], forbidden: ['type.?check passed']},
+    controlledEvents: [
+      {probeId: 'verification', command: 'node --test', outcomes: ['transient-failure', 'passed']},
+    ],
+  },
+};
+
 test('parseCase accepts the complete neutral schema', () => {
   const parsed = parseCase(valid, 'case.json', '/case');
   assert.equal(parsed.id, 'sample');
@@ -59,6 +72,37 @@ test('parseCase accepts version 2 semantics and file checks', () => {
   assert.equal(parsed.primaryQuality, 'task-effectiveness');
   assert.deepEqual(parsed.supportingQualities, ['change-discipline']);
   assert.deepEqual(parsed.grade.checks, validV2.grade.checks);
+});
+
+test('parseCase accepts version 3 dispositions and trial checks', () => {
+  const parsed = parseCase(validV3, 'case.json', '/case');
+  assert.equal(parsed.schemaVersion, 3);
+  if (parsed.schemaVersion !== 3) assert.fail('expected version 3');
+  assert.equal(parsed.expectedDisposition, 'implemented');
+  assert.deepEqual(parsed.trialChecks.controlledEvents[0]?.outcomes, ['transient-failure', 'passed']);
+});
+
+test('version 3 rejects malformed trial facts, probes, and unsupported combinations', () => {
+  assert.throws(
+    () => parseCase({...validV3, expectedDisposition: 'guessed'}, 'case.json', '/case'),
+    /must be one of/,
+  );
+  assert.throws(
+    () => parseCase({...validV3, trialChecks: {finalResponse: {required: ['['], forbidden: []}, controlledEvents: []}}, 'case.json', '/case'),
+    /valid JavaScript regular expression/,
+  );
+  assert.throws(
+    () => parseCase({...validV3, trialChecks: {finalResponse: {required: [], forbidden: []}, controlledEvents: []}}, 'case.json', '/case'),
+    /at least one trial check/,
+  );
+  assert.throws(
+    () => parseCase({...validV3, trialChecks: {...validV3.trialChecks, controlledEvents: [validV3.trialChecks.controlledEvents[0], validV3.trialChecks.controlledEvents[0]]}}, 'case.json', '/case'),
+    /duplicate probe IDs/,
+  );
+  assert.throws(
+    () => parseCase({...validV3, expectedDisposition: 'blocked'}, 'case.json', '/case'),
+    /unsupported for blocked/,
+  );
 });
 
 test('parseCase rejects agent fields, unknown checks, and invalid limits', () => {
@@ -225,6 +269,33 @@ test('loadCase requires all fixture directories', () => {
     mkdirSync(join(root, 'workspace'));
     writeFileSync(join(root, 'case.json'), JSON.stringify(valid));
     assert.throws(() => loadCase(root), /solution\/ is required/);
+  } finally {
+    rmSync(root, {recursive: true, force: true});
+  }
+});
+
+test('loadCase requires and validates version 3 evidence fixtures', () => {
+  const root = mkdtempSync(join(tmpdir(), 'agent-eval-case-v3-'));
+  try {
+    for (const child of ['workspace', 'solution', 'counterexample']) mkdirSync(join(root, child));
+    writeFileSync(join(root, 'case.json'), JSON.stringify(validV3));
+    assert.throws(() => loadCase(root), /evidence\/ is required/);
+    mkdirSync(join(root, 'evidence'));
+    const evidence = {
+      terminalStatus: 'completed',
+      finalMessage: 'src/a.js; node --test passed after retry',
+      controlledEvents: [
+        {sequence: 1, probeId: 'verification', outcome: 'transient-failure'},
+        {sequence: 2, probeId: 'verification', outcome: 'passed'},
+      ],
+    };
+    writeFileSync(join(root, 'evidence', 'known-good.json'), JSON.stringify(evidence));
+    writeFileSync(join(root, 'evidence', 'known-bad.json'), JSON.stringify({...evidence, finalMessage: null}));
+    const loaded = loadCase(root);
+    assert.equal(loaded.schemaVersion, 3);
+    if (loaded.schemaVersion === 3) assert.equal(loaded.evidence.knownGood.controlledEvents.length, 2);
+    writeFileSync(join(root, 'evidence', 'known-bad.json'), '{');
+    assert.throws(() => loadCase(root), /invalid JSON/);
   } finally {
     rmSync(root, {recursive: true, force: true});
   }
