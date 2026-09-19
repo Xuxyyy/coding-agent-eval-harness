@@ -22,6 +22,14 @@
         "add-regression-coverage"
       ],
       "repeats": 3
+    },
+    {
+      "id": "workflow-v1",
+      "caseIds": [
+        "repair-config-flow",
+        "preserve-header-contract"
+      ],
+      "repeats": 1
     }
   ]
 }

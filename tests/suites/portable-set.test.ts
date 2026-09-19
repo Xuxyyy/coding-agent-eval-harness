@@ -15,7 +15,9 @@ const expected = [
   'create-to-spec',
   'fix-failing-test',
   'follow-repository-instructions',
+  'preserve-header-contract',
   'preserve-user-wip',
+  'repair-config-flow',
 ];
 
 const matrix: Record<string, {
@@ -53,15 +55,37 @@ const matrix: Record<string, {
     primaryQuality: 'verification-quality',
     supportingQualities: ['task-effectiveness', 'change-discipline'],
   },
+  'repair-config-flow': {
+    startState: 'unsolved',
+    primaryQuality: 'repository-understanding',
+    supportingQualities: ['task-effectiveness', 'change-discipline', 'verification-quality'],
+  },
+  'preserve-header-contract': {
+    startState: 'unsolved',
+    primaryQuality: 'change-discipline',
+    supportingQualities: [
+      'task-effectiveness',
+      'repository-understanding',
+      'user-work-protection',
+      'verification-quality',
+    ],
+  },
 };
 
-test('portable inventory and profiles match the reviewed foundation contract', () => {
+test('portable inventory and profiles match the reviewed eight-case contract', () => {
   const cases = loadCases(suiteRoot);
   assert.deepEqual(cases.map((item) => item.id), expected);
+  assert.equal(cases.filter((item) => item.schemaVersion === 2 && item.level === 'focused').length, 6);
+  assert.equal(cases.filter((item) => item.schemaVersion === 2 && item.level === 'workflow').length, 2);
   for (const definition of cases) {
     assert.equal(definition.schemaVersion, 2, `${definition.id}: must use schema version 2`);
     if (definition.schemaVersion !== 2) continue;
-    assert.equal(definition.level, 'focused');
+    assert.equal(
+      definition.level,
+      ['repair-config-flow', 'preserve-header-contract'].includes(definition.id)
+        ? 'workflow'
+        : 'focused',
+    );
     assert.deepEqual(
       {
         startState: definition.startState,
@@ -97,6 +121,11 @@ test('portable inventory and profiles match the reviewed foundation contract', (
         'add-regression-coverage',
       ],
       repeats: 3,
+    },
+    {
+      id: 'workflow-v1',
+      caseIds: ['repair-config-flow', 'preserve-header-contract'],
+      repeats: 1,
     },
   ]);
 });

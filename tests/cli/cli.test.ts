@@ -134,7 +134,7 @@ function runCli(executable: string, output: string, mode?: string, profile?: str
   );
 }
 
-test('built CLI runs all six cases end to end and writes a parseable ad hoc report', () => {
+test('built CLI runs all eight cases end to end and writes a parseable ad hoc report', () => {
   const root = mkdtempSync(join(tmpdir(), 'agent-eval-cli-'));
   try {
     const executable = writeFakeAcc(root);
@@ -142,19 +142,19 @@ test('built CLI runs all six cases end to end and writes a parseable ad hoc repo
     const run = runCli(executable, output);
     assert.equal(run.status, 0, `${run.stderr}\n${run.stdout}`);
     assert.match(run.stdout, /terminal\s+elapsed_ms\s+total_tokens/);
-    assert.match(run.stdout, /running 1\/6  add-regression-coverage \(repeat 1\)/);
+    assert.match(run.stdout, /running 1\/8  add-regression-coverage \(repeat 1\)/);
     assert.match(run.stdout, /create-to-spec\s+1\s+pass/);
     assert.match(run.stdout, /create-to-spec\s+1\s+pass\s+true\s+true\s+completed\s+\d+\s+6/);
-    assert.match(run.stdout, /report\s+completed\s+passes 6\/6/);
+    assert.match(run.stdout, /report\s+completed\s+passes 8\/8/);
     const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
-    assert.equal(records.length, 7);
-    assert.deepEqual(records.slice(0, 6).map((record) => record.status), Array(6).fill('pass'));
-    assert.equal(records[6].schemaVersion, 3);
-    assert.equal(records[6].artifactSchemaVersion, 1);
-    assert.equal(records[6].profile, null);
-    assert.equal(records[6].profileVerdict, null);
-    assert.equal(records[6].suiteContentHash.length, 64);
-    assert.deepEqual(records[6].cleanup, {
+    assert.equal(records.length, 9);
+    assert.deepEqual(records.slice(0, 8).map((record) => record.status), Array(8).fill('pass'));
+    assert.equal(records[8].schemaVersion, 3);
+    assert.equal(records[8].artifactSchemaVersion, 1);
+    assert.equal(records[8].profile, null);
+    assert.equal(records[8].profileVerdict, null);
+    assert.equal(records[8].suiteContentHash.length, 64);
+    assert.deepEqual(records[8].cleanup, {
       workspaces: true,
       adapterHomes: true,
       processes: true,
@@ -298,6 +298,43 @@ test('built CLI preserves profile order and distinguishes every verdict', () => 
         [true, true, true],
       );
     }
+  } finally {
+    rmSync(root, {recursive: true, force: true});
+  }
+});
+
+test('built CLI runs workflow-v1 in reviewed order and exposes inspect evidence', () => {
+  const root = mkdtempSync(join(tmpdir(), 'agent-eval-cli-workflow-'));
+  try {
+    const executable = writeFakeAcc(root);
+    const output = join(root, 'workflow.jsonl');
+    const run = runCli(executable, output, undefined, 'workflow-v1');
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, /profile\s+workflow-v1\s+verdict met/);
+    const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+    const trials = records.slice(0, -1);
+    const report = records.at(-1);
+    assert.deepEqual(trials.map((record) => record.caseId), [
+      'repair-config-flow',
+      'preserve-header-contract',
+    ]);
+    assert.deepEqual(trials.map((record) => record.status), ['pass', 'pass']);
+    assert.equal(report.profile.profileId, 'workflow-v1');
+    assert.equal(report.profile.repeats, 1);
+    assert.equal(report.profileVerdict, 'met');
+    assert.deepEqual(
+      report.aggregate.byPrimaryQuality.map(
+        (quality: {quality: string; total: number}) => [quality.quality, quality.total],
+      ),
+      [['repository-understanding', 1], ['change-discipline', 1]],
+    );
+    assert.deepEqual(report.cleanup, {workspaces: true, adapterHomes: true, processes: true});
+
+    const inspected = inspectCli(output, 'repair-config-flow');
+    assert.equal(inspected.status, 0, inspected.stderr);
+    assert.match(inspected.stdout, /status: pass/);
+    assert.match(inspected.stdout, /src\/server-options\.js/);
+    assert.match(inspected.stdout, /test\/server-options-regression\.test\.js/);
   } finally {
     rmSync(root, {recursive: true, force: true});
   }

@@ -16,8 +16,7 @@ The standard has four layers:
 1. **Standard and evidence trust** — offline tests prove the fixture, grader,
    known-good solution, known-bad counterexample, report, and cleanup.
 2. **Focused product behaviors** — small cases isolate one primary quality.
-3. **User journeys** — future workflow cases will cover bounded end-to-end
-   repository work.
+3. **User journeys** — workflow cases cover bounded end-to-end repository work.
 4. **Public-boundary evidence health** — adapters prove launch, authoritative
    completion, bounded execution, evidence persistence, and cleanup.
 
@@ -27,11 +26,12 @@ Version 2 cases use nine controlled qualities: `task-effectiveness`,
 `recovery-resilience`, and `communication-handoff`. Reliability is
 cross-cutting and comes from a profile's repeat requirement, not one fixture.
 
-The current six-case foundation covers five distinct qualities as primary evidence.
-Repository understanding and change discipline appear only as supporting
-qualities. Recovery/resilience and communication/handoff are uncovered.
-There are no user-journey cases yet. These limits are intentional and remain
-visible in [the suite design record](suites/portable/README.md).
+The current eight-case suite contains six focused cases and two workflow cases.
+It covers seven distinct qualities as primary evidence, including repository
+understanding and change discipline through the workflow cases.
+Recovery/resilience and communication/handoff are uncovered. This is an
+intermediate milestone, not `product-v1` or complete certification. These
+limits remain visible in [the suite design record](suites/portable/README.md).
 
 ## Requirements and offline gate
 
@@ -73,18 +73,23 @@ npm run -s eval:smoke:claude
 npm run -s eval:foundation:acc
 npm run -s eval:foundation:codex
 npm run -s eval:foundation:claude
+npm run -s eval:workflow:acc
+npm run -s eval:workflow:codex
+npm run -s eval:workflow:claude
 ```
 
 These commands make live provider calls and can consume account credit. The
 ACC shortcuts explicitly use `deepseek-v4-flash`, and the Codex shortcuts use
 `gpt-5.6-luna`. The Claude Code shortcuts use the CLI's configured default
 model. Use `smoke` for a quick three-trial check and `foundation` for the full
-18-trial baseline.
+18-trial focused baseline. Use `workflow` for the two repository workflows;
+each workflow runs once and the profile makes no reliability claim.
 
 The bundled profiles are:
 
 - `smoke-v1`: three cases, one trial each.
 - `foundation-v1`: six cases, three trials each.
+- `workflow-v1`: two workflow cases, one trial each, in reviewed order.
 
 Profile order and repeat counts are part of the versioned contract.
 `--profile` cannot be combined with `--case` or `--repeats`. `--max-seconds`

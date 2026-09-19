@@ -1,0 +1,8 @@
+{
+  "name": "repair-config-flow-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

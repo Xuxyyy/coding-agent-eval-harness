@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "preserve-header-contract",
+  "level": "workflow",
+  "primaryQuality": "change-discipline",
+  "supportingQualities": ["task-effectiveness", "repository-understanding", "user-work-protection", "verification-quality"],
+  "startState": "unsolved",
+  "task": {
+    "prompt": "Request construction emits duplicate logical headers when defaults and caller headers differ only by case. Fix header merging and add a focused regression test. Preserve caller precedence, caller input, public output shape, and the original spelling of every winning header key. Keep request construction, public exports, existing tests, documentation, and package metadata unchanged, and run the test suite when done.",
+    "maxSeconds": 180
+  },
+  "grade": {
+    "allowedWrites": ["src/merge-headers.js", "test/header-case-regression.test.js"],
+    "checks": [
+      {"kind": "exit0", "command": "npm test"},
+      {"kind": "exit0", "command": "node verify-header-contract.mjs"},
+      {"kind": "exists", "path": "test/header-case-regression.test.js"},
+      {"kind": "contains", "path": "test/header-case-regression.test.js", "text": "createRequest"},
+      {"kind": "unchanged", "path": "README.md"},
+      {"kind": "unchanged", "path": "package.json"},
+      {"kind": "unchanged", "path": "src/create-request.js"},
+      {"kind": "unchanged", "path": "src/index.js"},
+      {"kind": "unchanged", "path": "test/request.test.js"},
+      {"kind": "unchanged", "path": "verify-header-contract.mjs"}
+    ]
+  }
+}

@@ -19,7 +19,7 @@ function report(path: string): {trials: Record<string, unknown>[]; report: Recor
   return {trials: records.slice(0, -1), report: records.at(-1)};
 }
 
-test('packed installation executes both profiles and preserves verdict distinctions', () => {
+test('packed installation executes all profiles and preserves verdict distinctions', () => {
   const root = mkdtempSync(join(tmpdir(), 'agent-eval-package-'));
   try {
     const dry = command('npm', ['pack', '--dry-run', '--json'], resolve('.'));
@@ -30,7 +30,7 @@ test('packed installation executes both profiles and preserves verdict distincti
     assert.equal(paths.includes('suites/portable/README.md'), true);
     assert.equal(paths.includes('dist/evidence/artifacts.js'), true);
     assert.equal(paths.includes('dist/evidence/artifacts.d.ts'), true);
-    const caseIds = [
+    const foundationCaseIds = [
       'create-to-spec',
       'fix-failing-test',
       'preserve-user-wip',
@@ -38,7 +38,9 @@ test('packed installation executes both profiles and preserves verdict distincti
       'follow-repository-instructions',
       'add-regression-coverage',
     ];
-    for (const caseId of caseIds) {
+    const workflowCaseIds = ['repair-config-flow', 'preserve-header-contract'];
+    const allCaseIds = [...foundationCaseIds, ...workflowCaseIds];
+    for (const caseId of allCaseIds) {
       const prefix = `suites/portable/${caseId}/`;
       assert.equal(paths.includes(`${prefix}case.json`), true, `${caseId}: case manifest missing`);
       for (const tree of ['workspace/', 'solution/', 'counterexample/']) {
@@ -48,6 +50,36 @@ test('packed installation executes both profiles and preserves verdict distincti
           `${caseId}: ${tree} missing`,
         );
       }
+    }
+    const workflowFiles = [
+      'suites/portable/repair-config-flow/case.json',
+      'suites/portable/repair-config-flow/workspace/README.md',
+      'suites/portable/repair-config-flow/workspace/package.json',
+      'suites/portable/repair-config-flow/workspace/src/default-config.js',
+      'suites/portable/repair-config-flow/workspace/src/resolve-config.js',
+      'suites/portable/repair-config-flow/workspace/src/server-options.js',
+      'suites/portable/repair-config-flow/workspace/test/resolve-config.test.js',
+      'suites/portable/repair-config-flow/workspace/test/server-options.test.js',
+      'suites/portable/repair-config-flow/workspace/verify-config-flow.mjs',
+      'suites/portable/repair-config-flow/solution/src/server-options.js',
+      'suites/portable/repair-config-flow/solution/test/server-options-regression.test.js',
+      'suites/portable/repair-config-flow/counterexample/src/server-options.js',
+      'suites/portable/repair-config-flow/counterexample/test/server-options-regression.test.js',
+      'suites/portable/preserve-header-contract/case.json',
+      'suites/portable/preserve-header-contract/workspace/README.md',
+      'suites/portable/preserve-header-contract/workspace/package.json',
+      'suites/portable/preserve-header-contract/workspace/src/create-request.js',
+      'suites/portable/preserve-header-contract/workspace/src/index.js',
+      'suites/portable/preserve-header-contract/workspace/src/merge-headers.js',
+      'suites/portable/preserve-header-contract/workspace/test/request.test.js',
+      'suites/portable/preserve-header-contract/workspace/verify-header-contract.mjs',
+      'suites/portable/preserve-header-contract/solution/src/merge-headers.js',
+      'suites/portable/preserve-header-contract/solution/test/header-case-regression.test.js',
+      'suites/portable/preserve-header-contract/counterexample/src/merge-headers.js',
+      'suites/portable/preserve-header-contract/counterexample/test/header-case-regression.test.js',
+    ];
+    for (const path of workflowFiles) {
+      assert.equal(paths.includes(path), true, `${path}: package entry missing`);
     }
     for (const path of paths) {
       assert.doesNotMatch(path, /^(plans|results|src|test|tests)\//u);
@@ -125,7 +157,7 @@ test('packed installation executes both profiles and preserves verdict distincti
     assert.equal(foundation.trials.length, 18);
     assert.deepEqual(
       foundation.trials.map((trial) => [trial.caseId, trial.repeat]),
-      caseIds.flatMap((caseId) => [1, 2, 3].map((repeat) => [caseId, repeat])),
+      foundationCaseIds.flatMap((caseId) => [1, 2, 3].map((repeat) => [caseId, repeat])),
     );
     assert.equal(foundation.report.profileVerdict, 'met');
     assert.equal(foundation.report.aggregate.errors, 0);
@@ -147,6 +179,37 @@ test('packed installation executes both profiles and preserves verdict distincti
       processes: true,
     });
 
+    const workflowPath = join(root, 'workflow.jsonl');
+    const workflowRun = runProfile('workflow-v1', workflowPath);
+    assert.equal(workflowRun.status, 0, workflowRun.stderr);
+    const workflow = report(workflowPath);
+    assert.equal(workflow.trials.length, 2);
+    assert.deepEqual(workflow.trials.map((trial) => trial.caseId), workflowCaseIds);
+    assert.deepEqual(workflow.trials.map((trial) => trial.status), ['pass', 'pass']);
+    assert.equal(workflow.report.profile.profileId, 'workflow-v1');
+    assert.equal(workflow.report.profile.repeats, 1);
+    assert.equal(workflow.report.profileVerdict, 'met');
+    assert.deepEqual(
+      workflow.report.aggregate.byPrimaryQuality.map(
+        (quality: {quality: string; total: number}) => [quality.quality, quality.total],
+      ),
+      [['repository-understanding', 1], ['change-discipline', 1]],
+    );
+    assert.deepEqual(workflow.report.cleanup, {
+      workspaces: true,
+      adapterHomes: true,
+      processes: true,
+    });
+    const workflowInspect = command(
+      executable,
+      ['inspect', '--result', workflowPath, '--case', 'repair-config-flow', '--repeat', '1'],
+      root,
+    );
+    assert.equal(workflowInspect.status, 0, workflowInspect.stderr);
+    assert.match(workflowInspect.stdout, /status: pass/);
+    assert.match(workflowInspect.stdout, /src\/server-options\.js/);
+    assert.match(workflowInspect.stdout, /test\/server-options-regression\.test\.js/);
+
     const failedPath = join(root, 'not-met.jsonl');
     const failedRun = runProfile('smoke-v1', failedPath, 'noedit');
     assert.equal(failedRun.status, 1);
@@ -158,7 +221,7 @@ test('packed installation executes both profiles and preserves verdict distincti
     const incomplete = report(errorPath);
     assert.equal(incomplete.report.profileVerdict, 'incomplete');
     assert.equal(incomplete.report.aggregate.errors, 3);
-    for (const result of [smoke, foundation, report(failedPath), incomplete]) {
+    for (const result of [smoke, foundation, workflow, report(failedPath), incomplete]) {
       assert.equal(result.trials.every((trial) =>
         (trial.cleanup as {workspace: boolean; adapterHome: boolean; process: boolean}).workspace &&
         (trial.cleanup as {workspace: boolean; adapterHome: boolean; process: boolean}).adapterHome &&
