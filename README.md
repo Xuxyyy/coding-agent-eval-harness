@@ -20,18 +20,19 @@ The standard has four layers:
 4. **Public-boundary evidence health** — adapters prove launch, authoritative
    completion, bounded execution, evidence persistence, and cleanup.
 
-Version 2 cases use nine controlled qualities: `task-effectiveness`,
+Version 2 and 3 cases use nine controlled qualities: `task-effectiveness`,
 `repository-understanding`, `change-discipline`, `user-work-protection`,
 `instruction-adherence`, `verification-quality`, `judgment-autonomy`,
 `recovery-resilience`, and `communication-handoff`. Reliability is
 cross-cutting and comes from a profile's repeat requirement, not one fixture.
 
-The current eight-case suite contains six focused cases and two workflow cases.
-It covers seven distinct qualities as primary evidence, including repository
-understanding and change discipline through the workflow cases.
-Recovery/resilience and communication/handoff are uncovered. This is an
-intermediate milestone, not `product-v1` or complete certification. These
-limits remain visible in [the suite design record](suites/portable/README.md).
+The current 12-case suite contains ten focused cases and two workflow cases.
+It covers all nine controlled qualities as primary evidence. The four-case
+`measurement-v1` profile adds controlled recovery, factual handoff, safe
+blocking, and safe deletion once each. It makes no reliability claim and is
+still an intermediate milestone, not `product-v1`, complete certification, or
+a real-agent baseline. These limits remain visible in
+[the suite design record](suites/portable/README.md).
 
 ## Requirements and offline gate
 
@@ -90,6 +91,7 @@ The bundled profiles are:
 - `smoke-v1`: three cases, one trial each.
 - `foundation-v1`: six cases, three trials each.
 - `workflow-v1`: two workflow cases, one trial each, in reviewed order.
+- `measurement-v1`: four measurement cases, one trial each, in reviewed order.
 
 Profile order and repeat counts are part of the versioned contract.
 `--profile` cannot be combined with `--case` or `--repeats`. `--max-seconds`
@@ -134,7 +136,8 @@ inspectable, but explain that structured artifacts are unavailable.
 ## Case and profile contracts
 
 Every case directory contains `case.json`, `workspace/`, `solution/`, and
-`counterexample/`. A version 2 case has explicit semantics:
+`counterexample/`. Version 3 cases also contain reviewed `evidence/` fixtures.
+A version 2 case has explicit repository semantics:
 
 ```json
 {
@@ -168,6 +171,15 @@ an outcome check. A `satisfied` workspace must already solve every check and
 stay unchanged. Every solution must solve and remain clean. Every
 counterexample must fail solved-and-clean conformance.
 
+Version 3 keeps those repository rules and adds `expectedDisposition` with one
+of `implemented`, `no-change`, or `blocked`, plus strict `trialChecks` for
+case-authored final-response regular expressions and ordered harness-owned
+probe outcomes. Required and forbidden response patterns are case-insensitive.
+Controlled probe events are stored outside the editable workspace, copied into
+the immutable trial artifact after validation, and removed with their per-trial
+control directory. Complete repository and behavior conformance decides whether
+known-bad evidence is rejected.
+
 External version 1 cases still load for ad hoc runs. They retain their original
 `category` field and the `exists`, `exit0`, and `unchanged` checks. A version 1
 case cannot join a versioned profile because it lacks quality and starting-state
@@ -181,13 +193,15 @@ repeats, and unknown fields.
 ## Reports and verdicts
 
 Each trial uses a fresh temporary Git repository. New runs use report schema
-version 3. It records case semantics, selected profile identity or `null`, ordered case
-IDs, required repeats, an optional time cap, exact changes, deterministic
-checks, cleanup, artifact schema and root, case schema versions, per-case
-completeness, and results by primary quality. The public reader accepts report
-schema version 2 for limited inspection compatibility.
+version 4 and artifact schema version 2. They record repository outcome and
+trial behavior separately while retaining top-level `solved` and `clean`
+compatibility fields. Reports also record selected profile identity or `null`,
+ordered case IDs, required repeats, an optional time cap, cleanup, schema
+versions, per-case completeness, and results by primary quality. The public
+reader accepts report schema version 2 for limited inspection and report schema
+version 3 with artifact schema version 1 for structured compatibility.
 
-Each version 3 trial links to an immutable manifest-backed bundle beside the
+Each structured trial links to an immutable manifest-backed bundle beside the
 result file. A typical layout is:
 
 ```text
@@ -208,9 +222,12 @@ the existing process limits. `events.jsonl` is a portable diagnostic view of
 public assistant messages, tool calls and results when exposed, usage,
 terminal state, and unknown public events. It excludes private reasoning.
 `final.patch` is a bounded binary-capable Git patch containing additions,
-modifications, and deletions. The manifest stores file sizes, SHA-256 digests,
-truncation flags, execution identity, the final message, deterministic grade,
-errors, timing, and cleanup.
+modifications, and deletions. It compares the final tree with the fixture's
+original commit through a temporary Git index, so agent staging or commits do
+not hide changes and the agent's real index, branch, and `HEAD` stay untouched.
+The manifest stores file sizes, SHA-256 digests, truncation flags, execution
+identity, the final message, separate repository and behavior grades,
+controlled events, errors, timing, and cleanup.
 
 Profile verdicts are:
 
@@ -220,7 +237,10 @@ Profile verdicts are:
 
 An error never disappears from a favorable capability denominator. Ad hoc runs
 have no conformance verdict. The report keeps `solved`, `clean`, `pass`, `fail`,
-and `error` distinct and does not calculate a weighted overall score.
+and `error` distinct. A trial passes only when its completed terminal state,
+repository outcome, write scope, final-response facts, and any controlled
+events pass. A correct `blocked` trial completes normally without workspace
+changes. The report does not calculate a weighted overall score.
 
 Raw streams, canonical events, patches, manifests, and reports go to ignored
 `results/` by default. They may contain model output, source code, local paths,

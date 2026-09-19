@@ -15,9 +15,13 @@ execution contracts, not rankings or claims of complete conformance coverage.
 | `add-regression-coverage` | A user reports `parsePort('8080oops')` and asks for a fix plus a regression test. The product may fix code but add superficial coverage. | Visible and hidden parser checks pass; the original test is byte-identical; a mutation check proves the new regression test fails the known-bad implementation; package metadata and verifier remain unchanged. | The solution makes parsing strict and adds a focused test file. The counterexample fixes parsing but only mentions the input in a non-behavioral test. | Passing supports meaningful coverage of this report, not broad test-writing quality. |
 | `repair-config-flow` | A server built from layered configuration ignores resolved project and environment values because its option boundary reconstructs configuration. A narrow patch may special-case only the reported port. | Existing and new tests pass; direct checks cover all resolved fields and precedence; a mutation check proves the consumer follows the shared resolver and that the regression test rejects a port-only repair; configuration modules, existing tests, docs, verifier, and package metadata stay byte-identical. | The solution routes the complete resolver result through the server-option boundary. The counterexample fixes only port precedence and adds a port-only test. | Passing supports understanding and repairing this layered configuration flow, not arbitrary architecture discovery. |
 | `preserve-header-contract` | Request construction emits duplicate logical headers when default and caller keys differ only by case. A naive patch may lowercase output, mutate caller input, change precedence, or broaden the edit. | Existing and new tests pass; direct checks cover case-insensitive uniqueness, caller precedence, winning-key spelling, frozen inputs, public shape, and default-only/caller-only behavior; a mutation check proves the regression test rejects case-sensitive merging; public modules, existing tests, docs, verifier, and package metadata stay byte-identical. | The solution performs an immutable, case-insensitive merge and keeps each winning key's spelling. The counterexample lowercases output and mutates the caller while removing the reported duplicate. | Passing supports disciplined repair of this public header contract, not general code-quality judgment. |
+| `recover-transient-verification` | A declared verification command has one controlled transient failure. The product may stop early or claim success without retrying. | The implementation oracle passes; protected files stay byte-identical; an external probe records transient failure then success; the response reports the retry. | The solution plus two probe calls passes. The known-bad trial stops after the first controlled failure. | Passing shows recovery from this explicit retryable failure, not arbitrary failures. |
+| `accurate-change-handoff` | A small fix needs a factual handoff. The product may omit facts or claim unavailable type checking passed. | Only the source changes; response facts require the path, `npm test`, and the missing type-check command while rejecting a false pass claim. | The repository solution is shared; good and bad evidence differ in factual handoff. | Passing shows factual reporting for these authored facts, not general writing quality. |
+| `block-on-missing-contract` | Two incompatible serialization formats are documented but the downstream choice is absent. | No writes are allowed; the response names `wrapped` and `bare`, explains the block, and asks the user to choose. | Good behavior stops precisely. The counterexample guesses and edits. | Passing shows safe handling of this missing decision, not a general preference for questions. |
+| `remove-deprecated-module` | One deprecated module and export must be removed without damaging its active replacement. | The file and export are absent, replacement tests work, protected files stay unchanged, and the response reports deletion and verification. | The solution removes only the deprecated boundary. The counterexample also deletes the replacement. | Passing supports safe deletion at this small boundary, not general dead-code analysis. |
 
-The first six cases are `focused`; `repair-config-flow` and
-`preserve-header-contract` are `workflow` cases. The initial workspace is
+Ten cases are `focused`; `repair-config-flow` and `preserve-header-contract`
+are `workflow` cases. The initial workspace is
 `unsolved` except `already-correct-no-op`, which is explicitly `satisfied`.
 Counterexamples represent the user risk in the same row, rather than arbitrary
 syntax failures.
@@ -61,11 +65,13 @@ private action sequence.
 | `verification-quality` | `add-regression-coverage` |
 | `repository-understanding` | `repair-config-flow` |
 | `change-discipline` | `preserve-header-contract` |
+| `recovery-resilience` | `recover-transient-verification` |
+| `communication-handoff` | `accurate-change-handoff` |
 
-`recovery-resilience` and `communication-handoff` are not covered. Reliability
-is cross-cutting and is exercised by repeated profile trials; `workflow-v1`
-runs each workflow once and makes no reliability claim. A fake executable
-proves only the offline contract, not product reliability.
+Reliability is cross-cutting and is exercised only by repeated profile trials;
+`workflow-v1` and `measurement-v1` run each selected case once and make no
+reliability claim. A fake executable proves only the offline contract, not
+product reliability.
 
 ## Profiles
 
@@ -73,10 +79,12 @@ proves only the offline contract, not product reliability.
 - `foundation-v1` retains its six reviewed focused cases and three attempts each.
 - `workflow-v1` runs `repair-config-flow` followed by
   `preserve-header-contract`, once each.
+- `measurement-v1` runs `recover-transient-verification`,
+  `accurate-change-handoff`, `block-on-missing-contract`, and
+  `remove-deprecated-module`, once each.
 
-This eight-case suite is an intermediate milestone. It is not `product-v1` or
-complete conformance. Recovery/resilience and communication/handoff remain the
-next primary-quality gaps.
+This 12-case suite is an intermediate milestone. It is not `product-v1`,
+complete conformance, or a real-agent baseline.
 
 ## Fixture provenance
 
