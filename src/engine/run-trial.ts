@@ -6,11 +6,15 @@ import {
   type WriteTrialArtifactInput,
 } from '../evidence/artifacts.js';
 import {createFixture, removeFixture} from '../environments/fixture.js';
+import {createTrialControl, type TrialControl} from '../environments/trial-control.js';
 import {classifyTrial} from '../graders/classify-trial.js';
 import {gradeCase} from '../graders/grade-case.js';
+import {expectedDisposition, gradeTrialBehavior} from '../graders/grade-trial-behavior.js';
 import type {
   AdapterResult,
+  BehaviorGrade,
   CaseDefinition,
+  ControlledEvent,
   GradeResult,
   TrialRecord,
 } from '../types/index.js';
@@ -36,6 +40,16 @@ function emptyGrade(): GradeResult {
     checks: [],
     changes: {added: [], modified: [], deleted: []},
     scopeViolations: [],
+  };
+}
+
+function emptyBehavior(): BehaviorGrade {
+  return {
+    expectedDisposition: null,
+    dispositionPassed: false,
+    finalResponse: {passed: false, checks: []},
+    controlledEvents: {passed: false, checks: [], events: []},
+    passed: false,
   };
 }
 
@@ -68,10 +82,15 @@ function failedAdapter(error: Error): AdapterResult {
 export async function runTrial(options: RunTrialOptions): Promise<TrialRecord> {
   const {definition} = options;
   let root: string | null = null;
+  let initialCommit: string | null = null;
   let adapterResult: AdapterResult | null = null;
   let grade = emptyGrade();
+  let behaviorGrade = emptyBehavior();
+  let control: TrialControl | null = null;
+  let controlEvents: ControlledEvent[] = [];
   let harnessError: string | undefined;
   let workspaceClean = false;
+  let controlClean = true;
   let patch: Uint8Array = new Uint8Array();
   let patchTruncated = false;
   let patchCaptured = false;
@@ -80,6 +99,8 @@ export async function runTrial(options: RunTrialOptions): Promise<TrialRecord> {
   try {
     const fixture = createFixture(definition);
     root = fixture.root;
+    initialCommit = fixture.initialCommit;
+    if (definition.schemaVersion === 3) control = await createTrialControl(definition, root);
     const maxSeconds = options.maxSeconds === undefined
       ? definition.task.maxSeconds
       : Math.min(definition.task.maxSeconds, options.maxSeconds);
@@ -89,8 +110,17 @@ export async function runTrial(options: RunTrialOptions): Promise<TrialRecord> {
       prompt: definition.task.prompt,
       maxSeconds,
       ...(options.model === undefined ? {} : {model: options.model}),
+      ...(control === null ? {} : {env: control.env}),
     });
     grade = gradeCase(definition, root, fixture.before);
+    if (control !== null) controlEvents = control.readEvents();
+    behaviorGrade = gradeTrialBehavior(
+      definition,
+      adapterResult.terminalStatus,
+      adapterResult.finalMessage,
+      controlEvents,
+      grade,
+    );
     if (adapterResult.terminalStatus === 'error') {
       harnessError = adapterResult.error ?? 'adapter reported an unusable result';
     }
@@ -101,7 +131,7 @@ export async function runTrial(options: RunTrialOptions): Promise<TrialRecord> {
       harnessError = 'process cleanup could not be confirmed';
     }
     try {
-      const captured = await captureGitDiff(root);
+      const captured = await captureGitDiff(root, fixture.initialCommit);
       patch = captured.data;
       patchTruncated = captured.truncated;
       patchCaptured = true;
@@ -113,9 +143,9 @@ export async function runTrial(options: RunTrialOptions): Promise<TrialRecord> {
     const normalized = error instanceof Error ? error : new Error(String(error));
     harnessError = normalized.message;
     adapterResult ??= failedAdapter(normalized);
-    if (root !== null && !patchCaptured) {
+    if (root !== null && initialCommit !== null && !patchCaptured) {
       try {
-        const captured = await captureGitDiff(root);
+        const captured = await captureGitDiff(root, initialCommit);
         patch = captured.data;
         patchTruncated = captured.truncated;
       } catch (captureError) {
@@ -126,23 +156,32 @@ export async function runTrial(options: RunTrialOptions): Promise<TrialRecord> {
   } finally {
     workspaceClean = root === null ? true : removeFixture(root);
     if (!workspaceClean) harnessError = 'workspace cleanup could not be confirmed';
+    controlClean = control === null ? true : await control.cleanup();
+    if (!controlClean) harnessError = 'control cleanup could not be confirmed';
   }
 
   adapterResult ??= failedAdapter(new Error(harnessError ?? 'unknown harness error'));
+  const repositoryPassed = grade.solved && grade.clean;
+  const behaviorPassed = behaviorGrade.passed;
   const trial: TrialRecord = {
     kind: 'trial',
     caseId: definition.id,
     repeat: options.repeat,
     adapter: options.agent,
     requestedModel: options.model ?? null,
-    level: definition.schemaVersion === 2 ? definition.level : null,
-    primaryQuality: definition.schemaVersion === 2 ? definition.primaryQuality : null,
-    supportingQualities: definition.schemaVersion === 2 ? definition.supportingQualities : [],
-    startState: definition.schemaVersion === 2 ? definition.startState : null,
+    level: definition.schemaVersion === 1 ? null : definition.level,
+    primaryQuality: definition.schemaVersion === 1 ? null : definition.primaryQuality,
+    supportingQualities: definition.schemaVersion === 1 ? [] : definition.supportingQualities,
+    startState: definition.schemaVersion === 1 ? null : definition.startState,
+    expectedDisposition: expectedDisposition(definition),
     terminalStatus: adapterResult.terminalStatus,
-    status: classifyTrial(adapterResult.terminalStatus, grade.solved, grade.clean, harnessError),
+    status: classifyTrial(adapterResult.terminalStatus, repositoryPassed, behaviorPassed, harnessError),
     solved: grade.solved,
     clean: grade.clean,
+    repositoryPassed,
+    behaviorPassed,
+    repositoryGrade: grade,
+    behaviorGrade,
     elapsedMs: adapterResult.elapsedMs,
     usage: adapterResult.usage,
     checks: grade.checks,
@@ -152,6 +191,7 @@ export async function runTrial(options: RunTrialOptions): Promise<TrialRecord> {
       workspace: workspaceClean,
       adapterHome: adapterResult.cleanup.adapterHome,
       process: adapterResult.cleanup.process,
+      control: controlClean,
     },
     rawResultPath: null,
     artifactManifestPath: null,
@@ -166,6 +206,8 @@ export async function runTrial(options: RunTrialOptions): Promise<TrialRecord> {
         trial,
         adapterResult,
         grade,
+        behaviorGrade,
+        controlEvents,
         patch,
         patchTruncated,
         run: options.run,

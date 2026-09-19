@@ -51,6 +51,14 @@ export function initializeGit(root: string): void {
   git(root, ['commit', '-q', '-m', 'fixture: initial state']);
 }
 
+function gitOutput(root: string, args: string[]): string {
+  const run = spawnSync('git', args, {cwd: root, encoding: 'utf8'});
+  if (run.error || run.status !== 0) {
+    throw new Error(`git ${args.join(' ')} failed: ${run.error?.message ?? run.stderr}`);
+  }
+  return run.stdout.trim();
+}
+
 export function hashFile(path: string): string {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
@@ -93,12 +101,13 @@ export function compareSnapshots(
 export function createFixture(definition: CaseDefinition): {
   root: string;
   before: Map<string, string>;
+  initialCommit: string;
 } {
   const root = mkdtempSync(join(tmpdir(), FIXTURE_PREFIX));
   try {
     copyTree(join(definition.dir, 'workspace'), root);
     initializeGit(root);
-    return {root, before: snapshot(root)};
+    return {root, before: snapshot(root), initialCommit: gitOutput(root, ['rev-parse', 'HEAD'])};
   } catch (error) {
     removeFixture(root);
     throw error;

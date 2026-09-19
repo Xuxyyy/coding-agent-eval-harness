@@ -253,6 +253,10 @@ export const codexAdapter: AgentAdapter = {
       command: invocation.command,
       args: codexArguments(invocation),
       cwd: invocation.cwd,
+      env: {
+        ...invocation.env,
+        ...(process.env.CODEX_HOME === undefined ? {CODEX_HOME: undefined} : {CODEX_HOME: process.env.CODEX_HOME}),
+      },
       timeoutMs: invocation.maxSeconds * 1_000,
     });
     return parseCodex(run);

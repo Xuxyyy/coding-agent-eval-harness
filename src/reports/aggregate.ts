@@ -31,6 +31,8 @@ export function aggregate(
     passes: rate(scored.filter((trial) => trial.status === 'pass').length, scored.length),
     solved: rate(scored.filter((trial) => trial.solved).length, scored.length),
     clean: rate(scored.filter((trial) => trial.clean).length, scored.length),
+    repositoryPassed: rate(scored.filter((trial) => trial.repositoryPassed).length, scored.length),
+    behaviorPassed: rate(scored.filter((trial) => trial.behaviorPassed).length, scored.length),
     byCase: ids.map((id) => {
       const selected = trials.filter((trial) => trial.caseId === id);
       const kept = selected.filter((trial) => trial.status !== 'error');

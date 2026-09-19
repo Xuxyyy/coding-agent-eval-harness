@@ -178,6 +178,7 @@ export async function runEvaluation(options: RunOptions): Promise<RunResult> {
       workspaces: trials.every((trial) => trial.cleanup.workspace),
       adapterHomes: trials.every((trial) => trial.cleanup.adapterHome),
       processes: trials.every((trial) => trial.cleanup.process),
+      controls: trials.every((trial) => trial.cleanup.control),
     },
   };
   appendFileSync(resultPath, `${JSON.stringify(report)}\n`);
@@ -190,12 +191,14 @@ export async function runEvaluation(options: RunOptions): Promise<RunResult> {
 }
 
 export function formatSummary(result: RunResult): string {
-  const lines = ['case\trepeat\tstatus\tsolved\tclean\tterminal\telapsed_ms\ttotal_tokens'];
+  const lines = ['case\trepeat\tstatus\trepository\tbehavior\tsolved\tclean\tterminal\telapsed_ms\ttotal_tokens'];
   for (const trial of result.trials) {
     lines.push([
       trial.caseId,
       String(trial.repeat),
       trial.status,
+      String(trial.repositoryPassed),
+      String(trial.behaviorPassed),
       String(trial.solved),
       String(trial.clean),
       trial.terminalStatus,

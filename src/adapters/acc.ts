@@ -244,7 +244,7 @@ export const accAdapter: AgentAdapter = {
         command: invocation.command,
         args: accArguments(invocation),
         cwd: invocation.cwd,
-        env: {ACC_HOME: home},
+        env: {...invocation.env, ACC_HOME: home},
         timeoutMs: (invocation.maxSeconds + 5) * 1_000,
       });
     } finally {

@@ -4,7 +4,7 @@ import {
   readResultFile,
   readTrialArtifact,
 } from '../evidence/artifacts.js';
-import {LEGACY_REPORT_SCHEMA_VERSION} from '../types/index.js';
+import {LEGACY_REPORT_SCHEMA_VERSION, TRIAL_ARTIFACT_SCHEMA_VERSION} from '../types/index.js';
 
 export type InspectOptions = {result: string; caseId: string; repeat: number};
 
@@ -36,6 +36,7 @@ export function inspectResult(options: InspectOptions): string {
     `terminal: ${String(trial.terminalStatus ?? 'unknown')}`,
     `solved: ${String(trial.solved ?? 'unknown')}`,
     `clean: ${String(trial.clean ?? 'unknown')}`,
+    `expected disposition: ${String(trial.expectedDisposition ?? 'unknown')}`,
   ];
   if (result.schemaVersion === LEGACY_REPORT_SCHEMA_VERSION) {
     return [
@@ -49,6 +50,8 @@ export function inspectResult(options: InspectOptions): string {
 
   const evidence = readTrialArtifact(resultPath, trial);
   const manifest = evidence.manifest;
+  const measurement = manifest.schemaVersion === TRIAL_ARTIFACT_SCHEMA_VERSION;
+  const repositoryGrade = measurement ? manifest.repositoryGrade : manifest.grade;
   const events = evidence.events.map((event) => {
     const detail = event.kind === 'assistant_message'
       ? ` ${JSON.stringify(event.text)}`
@@ -62,14 +65,31 @@ export function inspectResult(options: InspectOptions): string {
     return `${event.sequence}. ${event.kind} [${event.providerEventType}]${detail}`;
   });
   const changeLines = [
-    `added: ${manifest.grade.changes.added.join(', ') || '(none)'}`,
-    `modified: ${manifest.grade.changes.modified.join(', ') || '(none)'}`,
-    `deleted: ${manifest.grade.changes.deleted.join(', ') || '(none)'}`,
-    `scope violations: ${manifest.grade.scopeViolations.join(', ') || '(none)'}`,
+    `added: ${repositoryGrade.changes.added.join(', ') || '(none)'}`,
+    `modified: ${repositoryGrade.changes.modified.join(', ') || '(none)'}`,
+    `deleted: ${repositoryGrade.changes.deleted.join(', ') || '(none)'}`,
+    `scope violations: ${repositoryGrade.scopeViolations.join(', ') || '(none)'}`,
   ];
-  const checkLines = manifest.grade.checks.map(
+  const checkLines = repositoryGrade.checks.map(
     (check, index) => `${index + 1}. ${check.ok ? 'PASS' : 'FAIL'} ${check.detail}`,
   );
+  const behaviorLines = measurement
+    ? [
+      `passed: ${manifest.behaviorGrade.passed}`,
+      `disposition: ${manifest.behaviorGrade.expectedDisposition ?? '(legacy)'} (${manifest.behaviorGrade.dispositionPassed ? 'PASS' : 'FAIL'})`,
+      `final response: ${manifest.behaviorGrade.finalResponse.passed ? 'PASS' : 'FAIL'}`,
+      ...manifest.behaviorGrade.finalResponse.checks.map(
+        (check, index) => `${index + 1}. ${check.ok ? 'PASS' : 'FAIL'} ${check.detail}`,
+      ),
+      `controlled events: ${manifest.behaviorGrade.controlledEvents.passed ? 'PASS' : 'FAIL'}`,
+      ...manifest.behaviorGrade.controlledEvents.checks.map(
+        (check, index) => `${index + 1}. ${check.ok ? 'PASS' : 'FAIL'} ${check.detail}`,
+      ),
+      ...manifest.controlEvents.map(
+        (event) => `${event.sequence}. ${event.probeId}: ${event.outcome}`,
+      ),
+    ]
+    : ['Unavailable in artifact schema version 1.'];
   const trialErrors = typeof trial.error === 'string' ? [trial.error] : [];
   const errors = [...manifest.errors, ...trialErrors].filter((item, index, all) => all.indexOf(item) === index);
   const artifactDirectory = trial.artifactManifestPath === null
@@ -91,11 +111,16 @@ export function inspectResult(options: InspectOptions): string {
     bounded(evidence.diff.toString('utf8') || '(empty)'),
     manifest.files.diff.truncated ? '[diff capture truncated]' : '',
     '',
-    'File changes',
+    'Repository outcome',
+    `passed: ${measurement ? manifest.outcome.repositoryPassed : repositoryGrade.solved && repositoryGrade.clean}`,
+    `solved: ${repositoryGrade.solved}`,
+    `clean: ${repositoryGrade.clean}`,
     ...changeLines,
-    '',
-    'Checks',
+    'repository checks:',
     bounded(checkLines.join('\n') || '(none)'),
+    '',
+    'Trial behavior',
+    bounded(behaviorLines.join('\n')),
     '',
     'Errors',
     bounded(errors.join('\n') || '(none)'),
@@ -104,6 +129,7 @@ export function inspectResult(options: InspectOptions): string {
     `workspace: ${manifest.cleanup.workspace}`,
     `adapter home: ${manifest.cleanup.adapterHome}`,
     `process: ${manifest.cleanup.process}`,
+    `control: ${measurement ? manifest.cleanup.control : '(legacy)'}`,
     '',
     'Artifacts',
     `manifest: ${String(trial.artifactManifestPath)}`,

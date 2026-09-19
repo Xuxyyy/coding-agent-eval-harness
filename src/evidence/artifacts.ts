@@ -2,35 +2,46 @@ import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {
   existsSync,
+  mkdtempSync,
   mkdirSync,
   readFileSync,
   realpathSync,
   renameSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
 import {basename, dirname, join, posix, relative, resolve} from 'node:path';
+import {tmpdir} from 'node:os';
 import {runProcess} from '../environments/process.js';
 import {
   LEGACY_REPORT_SCHEMA_VERSION,
+  LEGACY_TRIAL_ARTIFACT_SCHEMA_VERSION,
   REPORT_SCHEMA_VERSION,
+  STRUCTURED_REPORT_SCHEMA_VERSION,
   TRIAL_ARTIFACT_SCHEMA_VERSION,
   type AdapterResult,
   type ArtifactFileReference,
   type CanonicalEvent,
+  type BehaviorGrade,
+  type ControlledEvent,
   type GradeResult,
-  type RunReport,
+  type LegacyTrialArtifact,
   type TrialArtifact,
   type TrialRecord,
 } from '../types/index.js';
 
 export const GIT_DIFF_LIMIT_BYTES = 1024 * 1024;
 export const INSPECT_SECTION_LIMIT = 16 * 1024;
+export const GIT_INDEX_PREFIX = 'agent-eval-index-';
 
 type JsonObject = Record<string, unknown>;
 
 export type ParsedResultFile = {
-  schemaVersion: typeof LEGACY_REPORT_SCHEMA_VERSION | typeof REPORT_SCHEMA_VERSION;
+  schemaVersion:
+    | typeof LEGACY_REPORT_SCHEMA_VERSION
+    | typeof STRUCTURED_REPORT_SCHEMA_VERSION
+    | typeof REPORT_SCHEMA_VERSION;
   trials: JsonObject[];
   report: JsonObject;
 };
@@ -43,6 +54,8 @@ export type WriteTrialArtifactInput = {
   trial: TrialRecord;
   adapterResult: AdapterResult;
   grade: GradeResult;
+  behaviorGrade: BehaviorGrade;
+  controlEvents: ControlledEvent[];
   patch: Uint8Array;
   patchTruncated: boolean;
   run: ArtifactRunIdentity;
@@ -101,11 +114,12 @@ function validateUsage(value: unknown, label: string): void {
   }
 }
 
-function validateCleanup(value: unknown, label: string, workspace: boolean): void {
+function validateCleanup(value: unknown, label: string, workspace: boolean, control = false): void {
   const cleanup = object(value, label);
   if (workspace) boolean(cleanup.workspace, `${label}.workspace`);
   boolean(cleanup.adapterHome, `${label}.adapterHome`);
   boolean(cleanup.process, `${label}.process`);
+  if (control) boolean(cleanup.control, `${label}.control`);
 }
 
 function validateChanges(value: unknown, label: string): void {
@@ -127,6 +141,55 @@ function validateGrade(value: unknown, label: string): void {
   });
   validateChanges(grade.changes, `${label}.changes`);
   stringArray(grade.scopeViolations, `${label}.scopeViolations`);
+}
+
+function validateControlledEvents(value: unknown, label: string): ControlledEvent[] {
+  return array(value, label).map((item, index) => {
+    const event = object(item, `${label}[${index}]`);
+    const sequence = integer(event.sequence, `${label}[${index}].sequence`, 1);
+    if (sequence !== index + 1) throw new Error(`${label} sequence must be contiguous at ${index + 1}`);
+    const probeId = string(event.probeId, `${label}[${index}].probeId`);
+    const outcome = oneOf(
+      event.outcome,
+      ['transient-failure', 'passed', 'failed'] as const,
+      `${label}[${index}].outcome`,
+    );
+    return {sequence, probeId, outcome};
+  });
+}
+
+function validateBehaviorGrade(value: unknown, label: string): void {
+  const grade = object(value, label);
+  if (grade.expectedDisposition !== null) {
+    oneOf(grade.expectedDisposition, ['implemented', 'no-change', 'blocked'], `${label}.expectedDisposition`);
+  }
+  boolean(grade.dispositionPassed, `${label}.dispositionPassed`);
+  const finalResponse = object(grade.finalResponse, `${label}.finalResponse`);
+  boolean(finalResponse.passed, `${label}.finalResponse.passed`);
+  array(finalResponse.checks, `${label}.finalResponse.checks`).forEach((item, index) => {
+    const check = object(item, `${label}.finalResponse.checks[${index}]`);
+    oneOf(check.kind, ['required', 'forbidden'], `${label}.finalResponse.checks[${index}].kind`);
+    string(check.pattern, `${label}.finalResponse.checks[${index}].pattern`);
+    boolean(check.ok, `${label}.finalResponse.checks[${index}].ok`);
+    if (typeof check.detail !== 'string') throw new Error(`${label}.finalResponse.checks[${index}].detail must be a string`);
+  });
+  const controlled = object(grade.controlledEvents, `${label}.controlledEvents`);
+  boolean(controlled.passed, `${label}.controlledEvents.passed`);
+  array(controlled.checks, `${label}.controlledEvents.checks`).forEach((item, index) => {
+    const check = object(item, `${label}.controlledEvents.checks[${index}]`);
+    string(check.probeId, `${label}.controlledEvents.checks[${index}].probeId`);
+    array(check.expectedOutcomes, `${label}.controlledEvents.checks[${index}].expectedOutcomes`).forEach(
+      (outcome, outcomeIndex) => oneOf(
+        outcome,
+        ['transient-failure', 'passed', 'failed'],
+        `${label}.controlledEvents.checks[${index}].expectedOutcomes[${outcomeIndex}]`,
+      ),
+    );
+    boolean(check.ok, `${label}.controlledEvents.checks[${index}].ok`);
+    if (typeof check.detail !== 'string') throw new Error(`${label}.controlledEvents.checks[${index}].detail must be a string`);
+  });
+  validateControlledEvents(controlled.events, `${label}.controlledEvents.events`);
+  boolean(grade.passed, `${label}.passed`);
 }
 
 export function safeArtifactPath(value: unknown, label = 'artifact path'): string {
@@ -180,27 +243,40 @@ function eventJsonl(events: readonly CanonicalEvent[]): Buffer {
   return Buffer.from(`${events.map((event) => JSON.stringify(event)).join('\n')}\n`);
 }
 
-export async function captureGitDiff(root: string): Promise<{data: Buffer; truncated: boolean}> {
-  const staged = spawnSync('git', ['add', '--all'], {cwd: root, encoding: 'utf8'});
-  if (staged.error !== undefined || staged.status !== 0) {
-    throw new Error(`git add for evidence failed: ${staged.error?.message ?? staged.stderr.trim()}`);
+export async function captureGitDiff(
+  root: string,
+  initialCommit: string,
+): Promise<{data: Buffer; truncated: boolean}> {
+  const temporary = mkdtempSync(join(tmpdir(), GIT_INDEX_PREFIX));
+  const index = join(temporary, 'index');
+  const env = {...process.env, GIT_INDEX_FILE: index};
+  try {
+    for (const args of [['read-tree', initialCommit], ['add', '--all']]) {
+      const staged = spawnSync('git', args, {cwd: root, encoding: 'utf8', env});
+      if (staged.error !== undefined || staged.status !== 0) {
+        throw new Error(`git ${args.join(' ')} for evidence failed: ${staged.error?.message ?? staged.stderr.trim()}`);
+      }
+    }
+    const diff = await runProcess({
+      command: 'git',
+      args: ['diff', '--cached', '--binary', '--no-ext-diff', initialCommit],
+      cwd: root,
+      env: {GIT_INDEX_FILE: index},
+      timeoutMs: 30_000,
+      outputLimitBytes: GIT_DIFF_LIMIT_BYTES,
+    });
+    if (diff.error !== undefined || diff.exitCode !== 0 || diff.timedOut || !diff.cleanupComplete) {
+      throw new Error(
+        `git diff evidence failed: ${diff.error ?? (diff.stderr.trim() || `exit ${diff.exitCode}`)}`,
+      );
+    }
+    return {
+      data: Buffer.from(diff.stdoutBytes),
+      truncated: diff.truncated.stdout,
+    };
+  } finally {
+    rmSync(temporary, {recursive: true, force: true});
   }
-  const diff = await runProcess({
-    command: 'git',
-    args: ['diff', '--cached', '--binary', '--no-ext-diff', 'HEAD'],
-    cwd: root,
-    timeoutMs: 30_000,
-    outputLimitBytes: GIT_DIFF_LIMIT_BYTES,
-  });
-  if (diff.error !== undefined || diff.exitCode !== 0 || diff.timedOut || !diff.cleanupComplete) {
-    throw new Error(
-      `git diff evidence failed: ${diff.error ?? (diff.stderr.trim() || `exit ${diff.exitCode}`)}`,
-    );
-  }
-  return {
-    data: Buffer.from(diff.stdoutBytes),
-    truncated: diff.truncated.stdout,
-  };
 }
 
 export function writeTrialArtifact(input: WriteTrialArtifactInput): string {
@@ -244,11 +320,15 @@ export function writeTrialArtifact(input: WriteTrialArtifactInput): string {
       status: input.trial.status,
       solved: input.trial.solved,
       clean: input.trial.clean,
+      repositoryPassed: input.trial.repositoryPassed,
+      behaviorPassed: input.trial.behaviorPassed,
     },
     finalMessage: input.adapterResult.finalMessage,
     usage: input.adapterResult.usage,
     elapsedMs: input.adapterResult.elapsedMs,
-    grade: input.grade,
+    repositoryGrade: input.grade,
+    behaviorGrade: input.behaviorGrade,
+    controlEvents: input.controlEvents,
     errors: input.trial.error === undefined ? [] : [input.trial.error],
     cleanup: input.trial.cleanup,
     files,
@@ -260,7 +340,7 @@ export function writeTrialArtifact(input: WriteTrialArtifactInput): string {
   return relative(dirname(input.resultPath), manifest);
 }
 
-function validateTrialRecord(value: unknown, index: number): JsonObject {
+function validateTrialRecord(value: unknown, index: number, measurement: boolean): JsonObject {
   const trial = object(value, `record ${index}`);
   if (trial.kind !== 'trial') throw new Error(`record ${index} must be a trial`);
   string(trial.caseId, `record ${index}.caseId`);
@@ -271,16 +351,27 @@ function validateTrialRecord(value: unknown, index: number): JsonObject {
   if (trial.primaryQuality !== null) string(trial.primaryQuality, `record ${index}.primaryQuality`);
   stringArray(trial.supportingQualities, `record ${index}.supportingQualities`);
   if (trial.startState !== null) oneOf(trial.startState, ['unsolved', 'satisfied'], `record ${index}.startState`);
+  if (measurement) {
+    if (trial.expectedDisposition !== null) {
+      oneOf(trial.expectedDisposition, ['implemented', 'no-change', 'blocked'], `record ${index}.expectedDisposition`);
+    }
+  }
   oneOf(trial.terminalStatus, ['completed', 'denied', 'timeout', 'failed', 'error'], `record ${index}.terminalStatus`);
   oneOf(trial.status, ['pass', 'fail', 'error'], `record ${index}.status`);
   boolean(trial.solved, `record ${index}.solved`);
   boolean(trial.clean, `record ${index}.clean`);
+  if (measurement) {
+    boolean(trial.repositoryPassed, `record ${index}.repositoryPassed`);
+    boolean(trial.behaviorPassed, `record ${index}.behaviorPassed`);
+    validateGrade(trial.repositoryGrade, `record ${index}.repositoryGrade`);
+    validateBehaviorGrade(trial.behaviorGrade, `record ${index}.behaviorGrade`);
+  }
   integer(trial.elapsedMs, `record ${index}.elapsedMs`);
   validateUsage(trial.usage, `record ${index}.usage`);
   array(trial.checks, `record ${index}.checks`);
   validateChanges(trial.changes, `record ${index}.changes`);
   stringArray(trial.scopeViolations, `record ${index}.scopeViolations`);
-  validateCleanup(trial.cleanup, `record ${index}.cleanup`, true);
+  validateCleanup(trial.cleanup, `record ${index}.cleanup`, true, measurement);
   if (trial.artifactManifestPath !== null) {
     safeArtifactPath(trial.artifactManifestPath, `record ${index}.artifactManifestPath`);
   }
@@ -309,11 +400,15 @@ export function readResultFile(resultPath: string): ParsedResultFile {
   const report = records.at(-1)!;
   if (report.kind !== 'report') throw new Error('last result record must be a report');
   const schemaVersion = integer(report.schemaVersion, 'report.schemaVersion', 1);
-  if (schemaVersion !== LEGACY_REPORT_SCHEMA_VERSION && schemaVersion !== REPORT_SCHEMA_VERSION) {
+  if (
+    schemaVersion !== LEGACY_REPORT_SCHEMA_VERSION &&
+    schemaVersion !== STRUCTURED_REPORT_SCHEMA_VERSION &&
+    schemaVersion !== REPORT_SCHEMA_VERSION
+  ) {
     throw new Error(`unsupported report schema version: ${schemaVersion}`);
   }
   const trials = records.slice(0, -1);
-  if (schemaVersion === REPORT_SCHEMA_VERSION) {
+  if (schemaVersion === STRUCTURED_REPORT_SCHEMA_VERSION || schemaVersion === REPORT_SCHEMA_VERSION) {
     string(report.requestedAdapter, 'report.requestedAdapter');
     nullableString(report.requestedModel, 'report.requestedModel');
     string(report.agentExecutableVersion, 'report.agentExecutableVersion');
@@ -329,7 +424,10 @@ export function readResultFile(resultPath: string): ParsedResultFile {
     }
     if (report.maxSecondsCap !== null) integer(report.maxSecondsCap, 'report.maxSecondsCap', 1);
     string(report.suiteContentHash, 'report.suiteContentHash');
-    if (report.artifactSchemaVersion !== TRIAL_ARTIFACT_SCHEMA_VERSION) {
+    const expectedArtifactVersion = schemaVersion === REPORT_SCHEMA_VERSION
+      ? TRIAL_ARTIFACT_SCHEMA_VERSION
+      : LEGACY_TRIAL_ARTIFACT_SCHEMA_VERSION;
+    if (report.artifactSchemaVersion !== expectedArtifactVersion) {
       throw new Error(`unsupported artifact schema version: ${String(report.artifactSchemaVersion)}`);
     }
     safeArtifactPath(report.artifactRoot, 'report.artifactRoot');
@@ -337,8 +435,8 @@ export function readResultFile(resultPath: string): ParsedResultFile {
     for (const [caseId, version] of Object.entries(caseSchemaVersions)) {
       string(caseId, 'report.caseSchemaVersions key');
       const parsedVersion = integer(version, `report.caseSchemaVersions.${caseId}`, 1);
-      if (parsedVersion !== 1 && parsedVersion !== 2) {
-        throw new Error(`report.caseSchemaVersions.${caseId} must be 1 or 2`);
+      if (parsedVersion !== 1 && parsedVersion !== 2 && !(schemaVersion === REPORT_SCHEMA_VERSION && parsedVersion === 3)) {
+        throw new Error(`report.caseSchemaVersions.${caseId} must be supported by report schema ${schemaVersion}`);
       }
     }
     oneOf(report.terminalStatus, ['completed', 'failed', 'error'], 'report.terminalStatus');
@@ -347,7 +445,8 @@ export function readResultFile(resultPath: string): ParsedResultFile {
     boolean(cleanup.workspaces, 'report.cleanup.workspaces');
     boolean(cleanup.adapterHomes, 'report.cleanup.adapterHomes');
     boolean(cleanup.processes, 'report.cleanup.processes');
-    trials.forEach((trial, index) => validateTrialRecord(trial, index + 1));
+    if (schemaVersion === REPORT_SCHEMA_VERSION) boolean(cleanup.controls, 'report.cleanup.controls');
+    trials.forEach((trial, index) => validateTrialRecord(trial, index + 1, schemaVersion === REPORT_SCHEMA_VERSION));
   } else {
     for (const [index, trialValue] of trials.entries()) {
       const trial = object(trialValue, `record ${index + 1}`);
@@ -418,7 +517,13 @@ function readVerifiedFile(directory: string, reference: ArtifactFileReference, l
 export function readTrialArtifact(
   resultPath: string,
   trial: JsonObject,
-): {manifest: TrialArtifact; stdout: Buffer; stderr: Buffer; events: CanonicalEvent[]; diff: Buffer} {
+): {
+  manifest: TrialArtifact | LegacyTrialArtifact;
+  stdout: Buffer;
+  stderr: Buffer;
+  events: CanonicalEvent[];
+  diff: Buffer;
+} {
   const manifestRelative = safeArtifactPath(trial.artifactManifestPath, 'trial.artifactManifestPath');
   const manifestPath = resolveBeneath(dirname(resultPath), manifestRelative, 'trial.artifactManifestPath');
   if (!existsSync(manifestPath) || !statSync(manifestPath).isFile()) {
@@ -438,9 +543,13 @@ export function readTrialArtifact(
   }
   const value = object(parsed, 'artifact manifest');
   if (value.kind !== 'trial-artifact') throw new Error('artifact manifest kind is invalid');
-  if (value.schemaVersion !== TRIAL_ARTIFACT_SCHEMA_VERSION) {
+  if (
+    value.schemaVersion !== LEGACY_TRIAL_ARTIFACT_SCHEMA_VERSION &&
+    value.schemaVersion !== TRIAL_ARTIFACT_SCHEMA_VERSION
+  ) {
     throw new Error(`unsupported trial artifact schema version: ${String(value.schemaVersion)}`);
   }
+  const measurement = value.schemaVersion === TRIAL_ARTIFACT_SCHEMA_VERSION;
   const identity = object(value.identity, 'artifact.identity');
   if (identity.caseId !== trial.caseId || identity.repeat !== trial.repeat || identity.adapter !== trial.adapter) {
     throw new Error('artifact identity does not match selected trial');
@@ -460,20 +569,45 @@ export function readTrialArtifact(
   oneOf(outcome.status, ['pass', 'fail', 'error'], 'artifact.outcome.status');
   boolean(outcome.solved, 'artifact.outcome.solved');
   boolean(outcome.clean, 'artifact.outcome.clean');
+  if (measurement) {
+    boolean(outcome.repositoryPassed, 'artifact.outcome.repositoryPassed');
+    boolean(outcome.behaviorPassed, 'artifact.outcome.behaviorPassed');
+  }
   if (
     outcome.terminalStatus !== trial.terminalStatus ||
     outcome.status !== trial.status ||
     outcome.solved !== trial.solved ||
-    outcome.clean !== trial.clean
+    outcome.clean !== trial.clean ||
+    (measurement && (
+      outcome.repositoryPassed !== trial.repositoryPassed ||
+      outcome.behaviorPassed !== trial.behaviorPassed
+    ))
   ) {
     throw new Error('artifact outcome does not match selected trial');
   }
   nullableString(value.finalMessage, 'artifact.finalMessage');
   validateUsage(value.usage, 'artifact.usage');
   integer(value.elapsedMs, 'artifact.elapsedMs');
-  validateGrade(value.grade, 'artifact.grade');
+  if (measurement) {
+    validateGrade(value.repositoryGrade, 'artifact.repositoryGrade');
+    validateBehaviorGrade(value.behaviorGrade, 'artifact.behaviorGrade');
+    const controlEvents = validateControlledEvents(value.controlEvents, 'artifact.controlEvents');
+    const repositoryGrade = object(value.repositoryGrade, 'artifact.repositoryGrade');
+    const behaviorGrade = object(value.behaviorGrade, 'artifact.behaviorGrade');
+    const behaviorEvents = object(behaviorGrade.controlledEvents, 'artifact.behaviorGrade.controlledEvents').events;
+    if (
+      repositoryGrade.solved !== outcome.solved ||
+      repositoryGrade.clean !== outcome.clean ||
+      behaviorGrade.passed !== outcome.behaviorPassed ||
+      JSON.stringify(controlEvents) !== JSON.stringify(behaviorEvents)
+    ) {
+      throw new Error('artifact grades do not match artifact outcome or control events');
+    }
+  } else {
+    validateGrade(value.grade, 'artifact.grade');
+  }
   array(value.errors, 'artifact.errors').forEach((error, index) => string(error, `artifact.errors[${index}]`));
-  validateCleanup(value.cleanup, 'artifact.cleanup', true);
+  validateCleanup(value.cleanup, 'artifact.cleanup', true, measurement);
   const files = object(value.files, 'artifact.files');
   const references = {
     stdout: validateFileReference(files.stdout, 'artifact.files.stdout'),
@@ -493,5 +627,5 @@ export function readTrialArtifact(
     }
   });
   const diff = readVerifiedFile(directory, references.diff, 'artifact diff');
-  return {manifest: value as TrialArtifact, stdout, stderr, events, diff};
+  return {manifest: value as unknown as TrialArtifact | LegacyTrialArtifact, stdout, stderr, events, diff};
 }

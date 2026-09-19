@@ -149,8 +149,8 @@ test('built CLI runs all eight cases end to end and writes a parseable ad hoc re
     const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
     assert.equal(records.length, 9);
     assert.deepEqual(records.slice(0, 8).map((record) => record.status), Array(8).fill('pass'));
-    assert.equal(records[8].schemaVersion, 3);
-    assert.equal(records[8].artifactSchemaVersion, 1);
+    assert.equal(records[8].schemaVersion, 4);
+    assert.equal(records[8].artifactSchemaVersion, 2);
     assert.equal(records[8].profile, null);
     assert.equal(records[8].profileVerdict, null);
     assert.equal(records[8].suiteContentHash.length, 64);
@@ -158,6 +158,7 @@ test('built CLI runs all eight cases end to end and writes a parseable ad hoc re
       workspaces: true,
       adapterHomes: true,
       processes: true,
+      controls: true,
     });
   } finally {
     rmSync(root, {recursive: true, force: true});
@@ -184,8 +185,8 @@ test('built CLI runs then inspects structured evidence, including after bundle r
     const inspected = inspectCli(output, 'create-to-spec');
     assert.equal(inspected.status, 0, inspected.stderr);
     for (const section of [
-      'Identity and status', 'Final message', 'Events', 'Git diff', 'File changes',
-      'Checks', 'Errors', 'Cleanup', 'Artifacts',
+      'Identity and status', 'Final message', 'Events', 'Git diff', 'Repository outcome',
+      'Trial behavior', 'Errors', 'Cleanup', 'Artifacts',
     ]) assert.match(inspected.stdout, new RegExp(section));
     assert.match(inspected.stdout, /status: pass/);
     assert.match(inspected.stdout, /src\/slugify\.js/);
@@ -328,7 +329,7 @@ test('built CLI runs workflow-v1 in reviewed order and exposes inspect evidence'
       ),
       [['repository-understanding', 1], ['change-discipline', 1]],
     );
-    assert.deepEqual(report.cleanup, {workspaces: true, adapterHomes: true, processes: true});
+    assert.deepEqual(report.cleanup, {workspaces: true, adapterHomes: true, processes: true, controls: true});
 
     const inspected = inspectCli(output, 'repair-config-flow');
     assert.equal(inspected.status, 0, inspected.stderr);

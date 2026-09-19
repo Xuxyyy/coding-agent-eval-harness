@@ -2,7 +2,8 @@ import {TRIAL_ARTIFACT_SCHEMA_VERSION} from './artifact.js';
 import type {CaseQuality} from './case.js';
 
 export const LEGACY_REPORT_SCHEMA_VERSION = 2 as const;
-export const REPORT_SCHEMA_VERSION = 3 as const;
+export const STRUCTURED_REPORT_SCHEMA_VERSION = 3 as const;
+export const REPORT_SCHEMA_VERSION = 4 as const;
 
 export type Rate = {count: number; of: number; rate: number | null};
 export type CaseAggregate = {
@@ -28,6 +29,8 @@ export type Aggregate = {
   passes: Rate;
   solved: Rate;
   clean: Rate;
+  repositoryPassed: Rate;
+  behaviorPassed: Rate;
   byCase: CaseAggregate[];
   byPrimaryQuality: QualityAggregate[];
 };
@@ -61,5 +64,5 @@ export type RunReport = {
   caseSchemaVersions: Record<string, number>;
   terminalStatus: 'completed' | 'failed' | 'error';
   aggregate: Aggregate;
-  cleanup: {workspaces: boolean; adapterHomes: boolean; processes: boolean};
+  cleanup: {workspaces: boolean; adapterHomes: boolean; processes: boolean; controls: boolean};
 };

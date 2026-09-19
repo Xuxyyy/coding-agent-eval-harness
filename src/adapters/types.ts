@@ -8,6 +8,7 @@ export type AdapterInvocation = {
   prompt: string;
   maxSeconds: number;
   model?: string;
+  env?: NodeJS.ProcessEnv;
 };
 
 export interface AgentAdapter {

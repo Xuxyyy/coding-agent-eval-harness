@@ -10,6 +10,21 @@ function trial(
   repeat = 1,
   primaryQuality: CaseQuality | null = null,
 ): TrialRecord {
+  const repositoryPassed = status === 'pass';
+  const repositoryGrade = {
+    solved: repositoryPassed,
+    clean: true,
+    checks: [],
+    changes: {added: [], modified: [], deleted: []},
+    scopeViolations: [],
+  };
+  const behaviorGrade = {
+    expectedDisposition: null,
+    dispositionPassed: status !== 'error',
+    finalResponse: {passed: status !== 'error', checks: []},
+    controlledEvents: {passed: status !== 'error', checks: [], events: []},
+    passed: status !== 'error',
+  };
   return {
     kind: 'trial',
     caseId,
@@ -20,16 +35,21 @@ function trial(
     primaryQuality,
     supportingQualities: [],
     startState: null,
+    expectedDisposition: null,
     terminalStatus: status === 'error' ? 'error' : 'completed',
     status,
     solved: status === 'pass',
     clean: true,
+    repositoryPassed,
+    behaviorPassed: status !== 'error',
+    repositoryGrade,
+    behaviorGrade,
     elapsedMs: 1,
     usage: null,
     checks: [],
-    changes: {added: [], modified: [], deleted: []},
+    changes: repositoryGrade.changes,
     scopeViolations: [],
-    cleanup: {workspace: true, adapterHome: true, process: true},
+    cleanup: {workspace: true, adapterHome: true, process: true, control: true},
     rawResultPath: null,
     artifactManifestPath: null,
     ...(status === 'error' ? {error: 'launch failed'} : {}),
@@ -46,6 +66,8 @@ test('aggregate excludes errors from rates and combines repeated cases', () => {
   assert.equal(report.scored, 2);
   assert.equal(report.errors, 1);
   assert.deepEqual(report.passes, {count: 1, of: 2, rate: 0.5});
+  assert.deepEqual(report.repositoryPassed, {count: 1, of: 2, rate: 0.5});
+  assert.deepEqual(report.behaviorPassed, {count: 2, of: 2, rate: 1});
   assert.deepEqual(report.byCase, [
     {id: 'a', total: 2, required: null, complete: null, scored: 2, errors: 0, passes: 1},
     {id: 'b', total: 1, required: null, complete: null, scored: 0, errors: 1, passes: 0},

@@ -87,8 +87,8 @@ test('runEvaluation persists repeats, aggregation, metadata, raw output, and cle
     assert.equal(result.exitCode, 0);
     assert.equal(result.trials.length, 2);
     assert.equal(result.report.agentExecutableVersion, 'fake 1.0');
-    assert.equal(result.report.schemaVersion, 3);
-    assert.equal(result.report.artifactSchemaVersion, 1);
+    assert.equal(result.report.schemaVersion, 4);
+    assert.equal(result.report.artifactSchemaVersion, 2);
     assert.equal(result.report.requestedModel, 'exact-model');
     assert.equal(result.report.aggregate.passes.count, 2);
     assert.equal(result.report.suiteContentHash.length, 64);
@@ -96,6 +96,7 @@ test('runEvaluation persists repeats, aggregation, metadata, raw output, and cle
       workspaces: true,
       adapterHomes: true,
       processes: true,
+      controls: true,
     });
     const lines = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
     assert.equal(lines.length, 3);

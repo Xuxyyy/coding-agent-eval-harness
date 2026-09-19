@@ -253,7 +253,7 @@ const isCodex = process.argv.includes('exec');
 const isClaude = process.argv.includes('stream-json');
 const home = process.env.ACC_HOME;
 const settings = home ? JSON.parse(readFileSync(home + '/settings.json','utf8')) : null;
-console.log(JSON.stringify({type:'probe',argv:process.argv.slice(2),cwd:process.cwd(),accHome:home ?? null,settings,codexHome:process.env.CODEX_HOME ?? null,claudeConfigDir:process.env.CLAUDE_CONFIG_DIR ?? null}));
+console.log(JSON.stringify({type:'probe',argv:process.argv.slice(2),cwd:process.cwd(),accHome:home ?? null,settings,codexHome:process.env.CODEX_HOME ?? null,claudeConfigDir:process.env.CLAUDE_CONFIG_DIR ?? null,trialProbe:process.env.AGENT_EVAL_PROBE_VERIFICATION ?? null}));
 if (isCodex) {
   console.log(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'ok'}}));
   console.log(JSON.stringify({type:'turn.completed',usage:{input_tokens:1,output_tokens:2}}));
@@ -280,6 +280,7 @@ test('ACC adapter uses isolated settings and deletes its owned home', async () =
       prompt: 'task',
       maxSeconds: 2,
       model: 'chosen-model',
+      env: {ACC_HOME: 'must-not-win', AGENT_EVAL_PROBE_VERIFICATION: '/tmp/probe'},
     });
     assert.equal(result.terminalStatus, 'completed');
     const probe = JSON.parse(result.stdout.split('\n')[0]!);
@@ -287,6 +288,8 @@ test('ACC adapter uses isolated settings and deletes its owned home', async () =
     assert.deepEqual(probe.settings, {permission_mode: 'auto-edits', model: 'chosen-model'});
     assert.equal(probe.cwd.endsWith(root.split('/').at(-1)!), true);
     assert.equal(existsSync(probe.accHome), false);
+    assert.notEqual(probe.accHome, 'must-not-win');
+    assert.equal(probe.trialProbe, '/tmp/probe');
     assert.deepEqual(result.cleanup, {adapterHome: true, process: true});
     assert.equal(await accAdapter.version(executable, root), 'fake-agent 1.2.3');
   } finally {
@@ -305,10 +308,12 @@ test('Codex adapter preserves CODEX_HOME and runs ephemerally', async () => {
       cwd: root,
       prompt: 'task',
       maxSeconds: 2,
+      env: {CODEX_HOME: 'must-not-win', AGENT_EVAL_PROBE_VERIFICATION: '/tmp/probe'},
     });
     assert.equal(result.terminalStatus, 'completed');
     const probe = JSON.parse(result.stdout.split('\n')[0]!);
     assert.equal(probe.codexHome, 'sentinel-auth-home');
+    assert.equal(probe.trialProbe, '/tmp/probe');
     assert.deepEqual(probe.argv, codexArguments({command: executable, cwd: root, prompt: 'task', maxSeconds: 2}));
     assert.equal(await codexAdapter.version(executable, root), 'fake-agent 1.2.3');
   } finally {
@@ -329,10 +334,12 @@ test('Claude adapter preserves authentication environment and runs without persi
       cwd: root,
       prompt: 'task',
       maxSeconds: 2,
+      env: {CLAUDE_CONFIG_DIR: 'must-not-win', AGENT_EVAL_PROBE_VERIFICATION: '/tmp/probe'},
     });
     assert.equal(result.terminalStatus, 'completed');
     const probe = JSON.parse(result.stdout.split('\n')[0]!);
     assert.equal(probe.claudeConfigDir, 'sentinel-auth-home');
+    assert.equal(probe.trialProbe, '/tmp/probe');
     assert.deepEqual(
       probe.argv,
       claudeArguments({command: executable, cwd: root, prompt: 'task', maxSeconds: 2}),

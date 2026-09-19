@@ -264,6 +264,12 @@ export const claudeAdapter: AgentAdapter = {
       command: invocation.command,
       args: claudeArguments(invocation),
       cwd: invocation.cwd,
+      env: {
+        ...invocation.env,
+        ...(process.env.CLAUDE_CONFIG_DIR === undefined
+          ? {CLAUDE_CONFIG_DIR: undefined}
+          : {CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR}),
+      },
       timeoutMs: invocation.maxSeconds * 1_000,
     });
     return parseClaude(run);

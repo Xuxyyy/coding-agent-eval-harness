@@ -2,11 +2,11 @@ import type {TrialRecord, TrialStatus} from '../types/index.js';
 
 export function classifyTrial(
   terminalStatus: TrialRecord['terminalStatus'],
-  solved: boolean,
-  clean: boolean,
+  repositoryPassed: boolean,
+  behaviorPassed: boolean,
   harnessError?: string,
 ): TrialStatus {
   if (harnessError !== undefined || terminalStatus === 'error') return 'error';
-  if (terminalStatus === 'completed' && solved && clean) return 'pass';
+  if (terminalStatus === 'completed' && repositoryPassed && behaviorPassed) return 'pass';
   return 'fail';
 }

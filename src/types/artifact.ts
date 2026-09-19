@@ -1,8 +1,9 @@
 import type {AdapterTerminalStatus, Usage} from './adapter.js';
-import type {GradeResult} from './case.js';
+import type {BehaviorGrade, ControlledEvent, GradeResult} from './case.js';
 import type {TrialStatus} from './trial.js';
 
-export const TRIAL_ARTIFACT_SCHEMA_VERSION = 1 as const;
+export const LEGACY_TRIAL_ARTIFACT_SCHEMA_VERSION = 1 as const;
+export const TRIAL_ARTIFACT_SCHEMA_VERSION = 2 as const;
 
 export type ArtifactFileReference = {
   path: string;
@@ -36,6 +37,36 @@ export type TrialArtifact = {
     status: TrialStatus;
     solved: boolean;
     clean: boolean;
+    repositoryPassed: boolean;
+    behaviorPassed: boolean;
+  };
+  finalMessage: string | null;
+  usage: Usage | null;
+  elapsedMs: number;
+  repositoryGrade: GradeResult;
+  behaviorGrade: BehaviorGrade;
+  controlEvents: ControlledEvent[];
+  errors: string[];
+  cleanup: {workspace: boolean; adapterHome: boolean; process: boolean; control: boolean};
+  files: {
+    stdout: ArtifactFileReference;
+    stderr: ArtifactFileReference;
+    events: ArtifactFileReference;
+    diff: ArtifactFileReference;
+  };
+};
+
+export type LegacyTrialArtifact = {
+  kind: 'trial-artifact';
+  schemaVersion: typeof LEGACY_TRIAL_ARTIFACT_SCHEMA_VERSION;
+  identity: TrialArtifact['identity'];
+  run: TrialArtifact['run'];
+  environment: TrialArtifact['environment'];
+  outcome: {
+    terminalStatus: AdapterTerminalStatus;
+    status: TrialStatus;
+    solved: boolean;
+    clean: boolean;
   };
   finalMessage: string | null;
   usage: Usage | null;
@@ -43,10 +74,5 @@ export type TrialArtifact = {
   grade: GradeResult;
   errors: string[];
   cleanup: {workspace: boolean; adapterHome: boolean; process: boolean};
-  files: {
-    stdout: ArtifactFileReference;
-    stderr: ArtifactFileReference;
-    events: ArtifactFileReference;
-    diff: ArtifactFileReference;
-  };
+  files: TrialArtifact['files'];
 };

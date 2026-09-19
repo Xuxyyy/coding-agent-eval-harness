@@ -85,6 +85,7 @@ test('packed installation executes all profiles and preserves verdict distinctio
       assert.doesNotMatch(path, /^(plans|results|src|test|tests)\//u);
       if (path.startsWith('dist/')) assert.doesNotMatch(path, /\.test\./u);
       assert.doesNotMatch(path, /\.env|credential|secret|\.tgz$/iu);
+      assert.doesNotMatch(path, /agent-eval-control-|events\.jsonl$/u);
     }
 
     const packDir = join(root, 'pack');
@@ -138,8 +139,8 @@ test('packed installation executes all profiles and preserves verdict distinctio
       'create-to-spec', 'already-correct-no-op', 'preserve-user-wip',
     ]);
     assert.equal(smoke.report.profileVerdict, 'met');
-    assert.equal(smoke.report.schemaVersion, 3);
-    assert.equal(smoke.report.artifactSchemaVersion, 1);
+    assert.equal(smoke.report.schemaVersion, 4);
+    assert.equal(smoke.report.artifactSchemaVersion, 2);
     const inspected = command(
       executable,
       ['inspect', '--result', smokePath, '--case', 'create-to-spec', '--repeat', '1'],
@@ -177,6 +178,7 @@ test('packed installation executes all profiles and preserves verdict distinctio
       workspaces: true,
       adapterHomes: true,
       processes: true,
+      controls: true,
     });
 
     const workflowPath = join(root, 'workflow.jsonl');
@@ -199,6 +201,7 @@ test('packed installation executes all profiles and preserves verdict distinctio
       workspaces: true,
       adapterHomes: true,
       processes: true,
+      controls: true,
     });
     const workflowInspect = command(
       executable,
