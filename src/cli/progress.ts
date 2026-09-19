@@ -6,7 +6,6 @@ import type {
 import type {TrialRecord} from '../types/index.js';
 
 const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-const ANSI_CYAN = '\u001b[36m';
 const ANSI_DIM = '\u001b[2m';
 const ANSI_RESET = '\u001b[0m';
 
@@ -21,7 +20,7 @@ export function formatSpinnerLine(
   color: boolean,
 ): string {
   if (!color) return `${frame} Running ${label} · ${seconds}s`;
-  return `${ANSI_CYAN}${frame} Running${ANSI_RESET} ${label} ${ANSI_DIM}· ${seconds}s${ANSI_RESET}`;
+  return `${frame} Running ${label} ${ANSI_DIM}· ${seconds}s${ANSI_RESET}`;
 }
 
 export function formatTrialHeader(caseWidth: number): string {
