@@ -3,6 +3,16 @@ import {join} from 'node:path';
 
 export function writeFakeAcc(root: string): string {
   const executable = join(root, 'fake-acc');
+  const recoverySolution = `export function normalizeLabel(value) {
+  return value.trim().replace(/\\s+/g, ' ');
+}
+`;
+  const handoffSolution = `export function formatLabel(value) {
+  return value.trim().toLowerCase().replace(/\\b\\w/g, (letter) => letter.toUpperCase());
+}
+`;
+  const deletionIndex = `export {formatValue} from './format-value.js';
+`;
   const configSolution = `import {resolveConfig} from './resolve-config.js';
 
 export function buildServerOptions(layers = {}) {
@@ -40,11 +50,17 @@ test('case-insensitive caller precedence',()=>{const headers={accept:'text/plain
   writeFileSync(
     executable,
     `#!/usr/bin/env node
-import {existsSync,mkdirSync,readFileSync,writeFileSync} from 'node:fs';
+import {existsSync,mkdirSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
 if(process.argv.includes('--version')){console.log('fake-acc 2.0');process.exit(0)}
 if(process.env.FAKE_MODE==='malformed'){console.log('not-json');process.exit(0)}
+let finalMessage='done';
 if(process.env.FAKE_MODE!=='noedit'){
   if(existsSync('src/clamp.js')){}
+  else if(existsSync('src/normalize-label.js')){writeFileSync('src/normalize-label.js',${JSON.stringify(recoverySolution)});spawnSync(process.env.AGENT_EVAL_PROBE_VERIFICATION,[],{stdio:'inherit'});spawnSync(process.env.AGENT_EVAL_PROBE_VERIFICATION,[],{stdio:'inherit'});finalMessage='Fixed src/normalize-label.js. Verification passed after retry.'}
+  else if(existsSync('src/format-label.js')){writeFileSync('src/format-label.js',${JSON.stringify(handoffSolution)});finalMessage='Changed src/format-label.js. npm test passed. No type-check command is available.'}
+  else if(existsSync('src/serialize-payload.js')){finalMessage='Blocked because the contract choice is missing. Choose wrapped or bare.'}
+  else if(existsSync('src/deprecated-format.js')){rmSync('src/deprecated-format.js');writeFileSync('src/index.js',${JSON.stringify(deletionIndex)});spawnSync('git',['add','--all']);spawnSync('git',['commit','-q','-m','agent removes deprecated module']);finalMessage='Removed src/deprecated-format.js and its export. npm test passed.'}
   else if(existsSync('src/server-options.js')){writeFileSync('src/server-options.js',${JSON.stringify(configSolution)});writeFileSync('test/server-options-regression.test.js',${JSON.stringify(configTest)})}
   else if(existsSync('src/merge-headers.js')){writeFileSync('src/merge-headers.js',${JSON.stringify(headerSolution)});writeFileSync('test/header-case-regression.test.js',${JSON.stringify(headerTest)})}
   else if(existsSync('README.md')){mkdirSync('src',{recursive:true});writeFileSync('src/slugify.js',"export function slugify(text){return text.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')}\\n")}
@@ -53,8 +69,8 @@ if(process.env.FAKE_MODE!=='noedit'){
   else if(existsSync('src/title.js')){writeFileSync('src/title.js',"import {WORD_SEPARATOR} from './constants.js';\\n\\nexport function normalizeTitle(value) {\\n  return value.trim().toLowerCase().replace(/\\\\s+/g, WORD_SEPARATOR);\\n}\\n")}
   else if(existsSync('src/parse-port.js')){writeFileSync('src/parse-port.js',"export function parsePort(value) {\\n  if (typeof value !== 'string' || !/^\\\\d+$/.test(value)) return null;\\n  const port = Number(value);\\n  return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : null;\\n}\\n");writeFileSync('test/parse-port-regression.test.js',"import assert from 'node:assert/strict';\\nimport test from 'node:test';\\nimport {parsePort} from '../src/parse-port.js';\\ntest('regression',()=>assert.equal(parsePort('8080oops'),null));\\n")}
 }
-console.log(JSON.stringify({type:'text_delta',text:'done'}));
-console.log(JSON.stringify({kind:'result',stopped:'done',usage:{prompt:4,completion:2,total:6},prompts:0,steps:1}));
+console.log(JSON.stringify({type:'text_delta',text:finalMessage}));
+console.log(JSON.stringify({kind:'result',stopped:'done',message:finalMessage,usage:{prompt:4,completion:2,total:6},prompts:0,steps:1}));
 `,
   );
   chmodSync(executable, 0o755);

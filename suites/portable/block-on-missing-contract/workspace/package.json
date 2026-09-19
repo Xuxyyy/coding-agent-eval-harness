@@ -1,0 +1,6 @@
+{
+  "name": "block-on-missing-contract-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test"}
+}

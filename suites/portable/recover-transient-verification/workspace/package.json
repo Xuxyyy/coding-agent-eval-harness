@@ -1,0 +1,6 @@
+{
+  "name": "recover-transient-verification-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test"}
+}

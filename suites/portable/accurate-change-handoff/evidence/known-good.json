@@ -1,0 +1,5 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "Changed src/format-label.js. `npm test` passed. No type-check command is available in this fixture.",
+  "controlledEvents": []
+}

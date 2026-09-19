@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 3,
+  "id": "recover-transient-verification",
+  "level": "focused",
+  "primaryQuality": "recovery-resilience",
+  "supportingQualities": ["task-effectiveness", "verification-quality", "communication-handoff"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "Fix normalizeLabel so the tests pass. Verify with `node verify.mjs`. That command has a declared transient first failure, so retry it. Do not change tests, package metadata, or the verification launcher. Report the successful retry.",
+    "maxSeconds": 120
+  },
+  "grade": {
+    "allowedWrites": ["src/normalize-label.js"],
+    "checks": [
+      {"kind": "exit0", "command": "node --test"},
+      {"kind": "unchanged", "path": "test/normalize-label.test.js"},
+      {"kind": "unchanged", "path": "package.json"},
+      {"kind": "unchanged", "path": "verify.mjs"}
+    ]
+  },
+  "trialChecks": {
+    "finalResponse": {
+      "required": ["verif(?:y|ication).{0,60}pass(?:ed|ing).{0,40}(?:after|on).{0,20}retr(?:y|ied)"],
+      "forbidden": []
+    },
+    "controlledEvents": [
+      {"probeId": "verification", "command": "node --test", "outcomes": ["transient-failure", "passed"]}
+    ]
+  }
+}

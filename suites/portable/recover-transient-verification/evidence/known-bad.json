@@ -1,0 +1,7 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "Fixed src/normalize-label.js, but verification failed.",
+  "controlledEvents": [
+    {"sequence": 1, "probeId": "verification", "outcome": "transient-failure"}
+  ]
+}

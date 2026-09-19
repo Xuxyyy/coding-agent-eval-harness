@@ -39,7 +39,13 @@ test('packed installation executes all profiles and preserves verdict distinctio
       'add-regression-coverage',
     ];
     const workflowCaseIds = ['repair-config-flow', 'preserve-header-contract'];
-    const allCaseIds = [...foundationCaseIds, ...workflowCaseIds];
+    const measurementCaseIds = [
+      'recover-transient-verification',
+      'accurate-change-handoff',
+      'block-on-missing-contract',
+      'remove-deprecated-module',
+    ];
+    const allCaseIds = [...foundationCaseIds, ...workflowCaseIds, ...measurementCaseIds];
     for (const caseId of allCaseIds) {
       const prefix = `suites/portable/${caseId}/`;
       assert.equal(paths.includes(`${prefix}case.json`), true, `${caseId}: case manifest missing`);
@@ -49,6 +55,10 @@ test('packed installation executes all profiles and preserves verdict distinctio
           true,
           `${caseId}: ${tree} missing`,
         );
+      }
+      if (measurementCaseIds.includes(caseId)) {
+        assert.equal(paths.includes(`${prefix}evidence/known-good.json`), true);
+        assert.equal(paths.includes(`${prefix}evidence/known-bad.json`), true);
       }
     }
     const workflowFiles = [
@@ -213,6 +223,31 @@ test('packed installation executes all profiles and preserves verdict distinctio
     assert.match(workflowInspect.stdout, /src\/server-options\.js/);
     assert.match(workflowInspect.stdout, /test\/server-options-regression\.test\.js/);
 
+    const measurementPath = join(root, 'measurement.jsonl');
+    const measurementRun = runProfile('measurement-v1', measurementPath);
+    assert.equal(measurementRun.status, 0, measurementRun.stderr);
+    const measurement = report(measurementPath);
+    assert.deepEqual(measurement.trials.map((trial) => trial.caseId), measurementCaseIds);
+    assert.equal(measurement.trials.every((trial) => trial.status === 'pass'), true);
+    assert.equal(measurement.report.profileVerdict, 'met');
+    assert.deepEqual(
+      measurement.trials.map((trial) => trial.expectedDisposition),
+      ['implemented', 'implemented', 'blocked', 'implemented'],
+    );
+    assert.equal(measurement.trials.every((trial) => trial.repositoryPassed && trial.behaviorPassed), true);
+    const recoveryTrial = measurement.trials[0] as Record<string, any>;
+    assert.deepEqual(
+      recoveryTrial.behaviorGrade.controlledEvents.events.map((event: {outcome: string}) => event.outcome),
+      ['transient-failure', 'passed'],
+    );
+    const deletionInspect = command(
+      executable,
+      ['inspect', '--result', measurementPath, '--case', 'remove-deprecated-module', '--repeat', '1'],
+      root,
+    );
+    assert.equal(deletionInspect.status, 0, deletionInspect.stderr);
+    assert.match(deletionInspect.stdout, /deleted: src\/deprecated-format\.js/);
+
     const failedPath = join(root, 'not-met.jsonl');
     const failedRun = runProfile('smoke-v1', failedPath, 'noedit');
     assert.equal(failedRun.status, 1);
@@ -224,7 +259,7 @@ test('packed installation executes all profiles and preserves verdict distinctio
     const incomplete = report(errorPath);
     assert.equal(incomplete.report.profileVerdict, 'incomplete');
     assert.equal(incomplete.report.aggregate.errors, 3);
-    for (const result of [smoke, foundation, workflow, report(failedPath), incomplete]) {
+    for (const result of [smoke, foundation, workflow, measurement, report(failedPath), incomplete]) {
       assert.equal(result.trials.every((trial) =>
         (trial.cleanup as {workspace: boolean; adapterHome: boolean; process: boolean}).workspace &&
         (trial.cleanup as {workspace: boolean; adapterHome: boolean; process: boolean}).adapterHome &&

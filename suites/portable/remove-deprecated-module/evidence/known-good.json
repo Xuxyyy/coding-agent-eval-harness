@@ -1,0 +1,5 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "Removed src/deprecated-format.js and its export. `npm test` passed.",
+  "controlledEvents": []
+}

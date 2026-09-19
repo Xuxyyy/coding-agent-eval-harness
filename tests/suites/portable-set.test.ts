@@ -5,18 +5,23 @@ import test from 'node:test';
 import {loadCases, loadSuite} from '../../src/suites/cases.js';
 import {applyOverlay, createFixture, removeFixture} from '../../src/environments/fixture.js';
 import {gradeCase} from '../../src/graders/grade-case.js';
+import {gradeTrialBehavior} from '../../src/graders/grade-trial-behavior.js';
 import type {CaseQuality, StartState} from '../../src/types/index.js';
 
 const suiteRoot = resolve('suites/portable');
 
 const expected = [
+  'accurate-change-handoff',
   'add-regression-coverage',
   'already-correct-no-op',
+  'block-on-missing-contract',
   'create-to-spec',
   'fix-failing-test',
   'follow-repository-instructions',
   'preserve-header-contract',
   'preserve-user-wip',
+  'recover-transient-verification',
+  'remove-deprecated-module',
   'repair-config-flow',
 ];
 
@@ -70,16 +75,33 @@ const matrix: Record<string, {
       'verification-quality',
     ],
   },
+  'recover-transient-verification': {
+    startState: 'unsolved', primaryQuality: 'recovery-resilience',
+    supportingQualities: ['task-effectiveness', 'verification-quality', 'communication-handoff'],
+  },
+  'accurate-change-handoff': {
+    startState: 'unsolved', primaryQuality: 'communication-handoff',
+    supportingQualities: ['task-effectiveness', 'verification-quality', 'change-discipline'],
+  },
+  'block-on-missing-contract': {
+    startState: 'satisfied', primaryQuality: 'judgment-autonomy',
+    supportingQualities: ['instruction-adherence', 'user-work-protection', 'communication-handoff'],
+  },
+  'remove-deprecated-module': {
+    startState: 'unsolved', primaryQuality: 'user-work-protection',
+    supportingQualities: ['change-discipline', 'repository-understanding', 'task-effectiveness'],
+  },
 };
 
-test('portable inventory and profiles match the reviewed eight-case contract', () => {
+test('portable inventory and profiles match the reviewed twelve-case contract', () => {
   const cases = loadCases(suiteRoot);
   assert.deepEqual(cases.map((item) => item.id), expected);
   assert.equal(cases.filter((item) => item.schemaVersion === 2 && item.level === 'focused').length, 6);
   assert.equal(cases.filter((item) => item.schemaVersion === 2 && item.level === 'workflow').length, 2);
+  assert.equal(cases.filter((item) => item.schemaVersion === 3 && item.level === 'focused').length, 4);
   for (const definition of cases) {
-    assert.equal(definition.schemaVersion, 2, `${definition.id}: must use schema version 2`);
-    if (definition.schemaVersion !== 2) continue;
+    assert.notEqual(definition.schemaVersion, 1, `${definition.id}: must use a conformance schema`);
+    if (definition.schemaVersion === 1) continue;
     assert.equal(
       definition.level,
       ['repair-config-flow', 'preserve-header-contract'].includes(definition.id)
@@ -127,14 +149,24 @@ test('portable inventory and profiles match the reviewed eight-case contract', (
       caseIds: ['repair-config-flow', 'preserve-header-contract'],
       repeats: 1,
     },
+    {
+      id: 'measurement-v1',
+      caseIds: [
+        'recover-transient-verification',
+        'accurate-change-handoff',
+        'block-on-missing-contract',
+        'remove-deprecated-module',
+      ],
+      repeats: 1,
+    },
   ]);
 });
 
 test('the complete portable set admits both start states and rejects every counterexample', () => {
   const cases = loadCases(suiteRoot);
   for (const definition of cases) {
-    assert.equal(definition.schemaVersion, 2);
-    if (definition.schemaVersion !== 2) continue;
+    assert.notEqual(definition.schemaVersion, 1);
+    if (definition.schemaVersion === 1) continue;
 
     const starting = createFixture(definition);
     try {
@@ -167,6 +199,13 @@ test('the complete portable set admits both start states and rejects every count
         assert.deepEqual(definition.grade.allowedWrites, []);
         assert.deepEqual(changed, [], `${definition.id}: empty solution must make no changes`);
       }
+      if (definition.schemaVersion === 3) {
+        const evidence = definition.evidence.knownGood;
+        const behavior = gradeTrialBehavior(
+          definition, evidence.terminalStatus, evidence.finalMessage, evidence.controlledEvents, grade,
+        );
+        assert.equal(behavior.passed, true, `${definition.id}: known-good trial evidence must pass`);
+      }
     } finally {
       assert.equal(removeFixture(solved.root), true);
     }
@@ -175,11 +214,19 @@ test('the complete portable set admits both start states and rejects every count
     try {
       applyOverlay(definition, counterexample.root, 'counterexample');
       const grade = gradeCase(definition, counterexample.root, counterexample.before);
-      assert.equal(
-        grade.solved && grade.clean,
-        false,
-        `${definition.id}: counterexample must fail solved-and-clean conformance`,
-      );
+      if (definition.schemaVersion === 3) {
+        const evidence = definition.evidence.knownBad;
+        const behavior = gradeTrialBehavior(
+          definition, evidence.terminalStatus, evidence.finalMessage, evidence.controlledEvents, grade,
+        );
+        assert.equal(
+          grade.solved && grade.clean && behavior.passed,
+          false,
+          `${definition.id}: counterexample must fail complete conformance`,
+        );
+      } else {
+        assert.equal(grade.solved && grade.clean, false, `${definition.id}: counterexample must fail repository conformance`);
+      }
     } finally {
       assert.equal(removeFixture(counterexample.root), true);
     }

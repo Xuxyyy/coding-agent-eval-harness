@@ -1,0 +1,5 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "I am blocked because the contract choice is missing. The documented alternatives are wrapped and bare. Which format should I choose?",
+  "controlledEvents": []
+}

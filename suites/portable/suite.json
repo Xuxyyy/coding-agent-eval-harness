@@ -30,6 +30,16 @@
         "preserve-header-contract"
       ],
       "repeats": 1
+    },
+    {
+      "id": "measurement-v1",
+      "caseIds": [
+        "recover-transient-verification",
+        "accurate-change-handoff",
+        "block-on-missing-contract",
+        "remove-deprecated-module"
+      ],
+      "repeats": 1
     }
   ]
 }

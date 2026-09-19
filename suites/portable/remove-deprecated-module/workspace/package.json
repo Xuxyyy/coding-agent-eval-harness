@@ -1,0 +1,6 @@
+{
+  "name": "remove-deprecated-module-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test"}
+}

@@ -1,0 +1,6 @@
+{
+  "name": "accurate-change-handoff-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test"}
+}

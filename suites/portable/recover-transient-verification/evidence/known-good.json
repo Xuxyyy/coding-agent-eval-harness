@@ -1,0 +1,8 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "Fixed src/normalize-label.js. Verification passed after retrying the declared transient failure.",
+  "controlledEvents": [
+    {"sequence": 1, "probeId": "verification", "outcome": "transient-failure"},
+    {"sequence": 2, "probeId": "verification", "outcome": "passed"}
+  ]
+}
