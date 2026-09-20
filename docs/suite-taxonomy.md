@@ -1,88 +1,106 @@
-# Portable suite selection
+# Four-module portable suite taxonomy
 
-The portable evaluation uses a small vocabulary so choosing a test does not
-require understanding every grading detail.
+The portable suite is organized from an agent-builder's point of view. A user
+can run the module they are diagnosing instead of selecting cases by fixture
+size.
 
-## User-facing model
-
-| Term | Meaning | Current values |
-| --- | --- | --- |
-| Suite | The complete catalog of related cases. | `portable` |
-| Case | One evaluation task with its own fixture and oracles. | For example, `fix-failing-test` |
-| Level | The size of repository work in a case. | `focused`, `workflow` |
-| Profile | A fixed, versioned selection of cases and repeat count. | `smoke-v2`, `focused-v2`, `workflow-v2`, `full-v2` |
-| Run | One execution of a profile or explicit case selection against an agent. | A result JSONL file and its artifacts |
-
-The normal selection flow is:
+## Selection model
 
 ```text
 portable suite
-  -> choose smoke, focused, workflow, or full
-  -> run the profile against one agent
-  -> inspect the report or one trial
+  |-- reasoning-v1
+  |-- execution-v1
+  |-- recovery-v1
+  |-- verification-v1
+  `-- full-agent-v1 = all four modules in that order
 ```
 
-## Case levels
+Each case belongs to exactly one primary module:
 
-`focused` isolates one narrow situation and its principal risk. It may touch
-more than one file when that is necessary to make the risk realistic.
+| Module | Question |
+| --- | --- |
+| `reasoning` | Did the agent understand the active path, repository contract, and correct action? |
+| `execution` | Did it implement the change completely and with safe scope? |
+| `recovery` | Did it respond correctly to tool failure or partially completed work? |
+| `verification` | Did it collect enough evidence and report only supported facts? |
 
-`workflow` requires connected reasoning across multiple repository boundaries,
-such as a shared resolver and its consumer or a public API and its internal
-implementation. File count alone does not make a case a workflow.
+The profile tells the harness what to run. It is not a score dimension. All
+five profiles use one trial per case and make no reliability claim.
 
-These are the only user-facing case categories. The schema also records quality,
-start state, and expected disposition because the grader and report need them,
-but users do not need those fields to choose which part of the suite to run.
+| Profile | Module | Cases | Repeats |
+| --- | --- | ---: | ---: |
+| `reasoning-v1` | reasoning | 7 | 1 |
+| `execution-v1` | execution | 11 | 1 |
+| `recovery-v1` | recovery | 3 | 1 |
+| `verification-v1` | verification | 4 | 1 |
+| `full-agent-v1` | all | 25 | 1 |
 
-## Recommended profiles
+Old bundled profile IDs are removed. Historical result schemas remain
+inspectable, but old IDs are not accepted as aliases for current runs.
 
-| Profile | Purpose | Cases | Repeats |
-| --- | --- | --- | ---: |
-| `smoke-v2` | Quick health check | Four representative focused and workflow cases | 1 |
-| `focused-v2` | Test all narrow situations | All fourteen focused cases | 1 |
-| `workflow-v2` | Test connected repository work | All six workflow cases | 1 |
-| `full-v2` | Test the complete portable catalog | All twenty cases | 1 |
+## Separate dimensions
 
-These profiles are fixed run contracts. Their case order and repeat counts do
-not change after release. A later selection change requires a new profile
-version.
+Module, level, horizon, quality, disposition, and safety answer different
+questions. They must not be collapsed into one taxonomy.
 
-The four v1 selection profiles plus `foundation-v1` and `measurement-v1`
-remain available so earlier results stay reproducible. They are not part of
-the simplified profile choice for new runs.
+- `level` describes case shape. `focused` isolates a narrow situation.
+  `workflow` crosses connected repository boundaries.
+- `horizon` describes the dependency chain within one CLI run. Values are
+  `short`, `multi-stage`, and `long-horizon`.
+- `primaryQuality` identifies the main detailed skill being measured.
+  Supporting qualities may overlap modules.
+- `expectedDisposition` is `implemented`, `no-change`, or `blocked`.
+- safety is cross-cutting. Exact write scopes and unchanged checks protect user
+  work, instructions, tests, generators, metadata, and unrelated files.
 
-## Current coverage matrix
+`focused` and `workflow` therefore remain case metadata. They are not selectable
+bundled profiles.
 
-| Case | Task type | Level / repository shape | Disposition | Change shape | Primary quality | Main counterexample risk |
-| --- | --- | --- | --- | --- | --- | --- |
-| `create-to-spec` | create | focused module | implemented | add one source file | task-effectiveness | incomplete boundary rules |
-| `fix-failing-test` | repair | focused module | implemented | modify source | task-effectiveness | example-only fix or test tampering |
-| `preserve-user-wip` | repair | focused repository with draft | implemented | modify source beside user work | user-work-protection | overwriting unrelated draft work |
-| `already-correct-no-op` | assess | focused documented helper | no-change | no writes | judgment-autonomy | unnecessary rewrite |
-| `follow-repository-instructions` | repair | focused repository rule | implemented | modify one consumer | instruction-adherence | hard-coded behavior that ignores shared policy |
-| `add-regression-coverage` | repair and test | focused parser | implemented | modify source and add test | verification-quality | superficial regression test |
-| `recover-transient-verification` | recover and verify | focused controlled failure | implemented | modify source and retry probe | recovery-resilience | stopping after a retryable failure |
-| `accurate-change-handoff` | repair and report | focused formatter | implemented | modify source and report facts | communication-handoff | false verification claim |
-| `block-on-missing-contract` | assess | focused ambiguous contract | blocked | no writes | judgment-autonomy | guessing an unsupported contract |
-| `remove-deprecated-module` | remove | focused public boundary | implemented | delete module and edit export | user-work-protection | deleting the active replacement |
-| `diagnose-root-cause` | investigate | focused call boundary | no-change | no writes; factual report | communication-handoff | symptom-only diagnosis or unauthorized fix |
-| `repair-stale-test-contract` | repair test | focused documented API | implemented | modify existing test | judgment-autonomy | changing correct production code |
-| `regenerate-derived-source` | generate | focused source/generated pair | implemented | modify definition and generated output | instruction-adherence | hand-editing generated output |
-| `resolve-conflict-preserving-behavior` | resolve conflict | focused conflicted module | implemented | modify conflicted source | user-work-protection | choosing one side and losing behavior |
-| `repair-config-flow` | repair flow | workflow across resolver and consumer | implemented | modify consumer and add test | repository-understanding | special-casing one field |
-| `preserve-header-contract` | repair public contract | workflow across merge and request boundary | implemented | modify implementation and add test | change-discipline | casing, precedence, or mutation drift |
-| `refactor-shared-validation` | refactor | workflow across API and CLI | implemented | add shared module and update consumers | change-discipline | partial extraction or behavior drift |
-| `migrate-cross-package-api` | migrate API | workflow across four packages | implemented | modify API and three callers | repository-understanding | missed caller or compatibility shim |
-| `repair-concurrent-cache` | repair async flow | workflow across cache and loader | implemented | modify cache, add helper and test | task-effectiveness | permanently caching a rejection |
-| `restore-cli-error-contract` | repair and test CLI | workflow across library and process boundary | implemented | modify library, bin, and add test | verification-quality | unit-only fix that misses exit behavior |
+## Current case matrix
 
-## Admission rule for new cases
+| Module | Case | Level | Horizon | Primary quality | Disposition |
+| --- | --- | --- | --- | --- | --- |
+| reasoning | `already-correct-no-op` | focused | short | judgment-autonomy | no-change |
+| reasoning | `block-on-missing-contract` | focused | short | judgment-autonomy | blocked |
+| reasoning | `diagnose-root-cause` | focused | short | communication-handoff | no-change |
+| reasoning | `repair-stale-test-contract` | focused | short | judgment-autonomy | implemented |
+| reasoning | `trace-actual-runtime-path` | workflow | multi-stage | repository-understanding | implemented |
+| reasoning | `repair-config-flow` | workflow | multi-stage | repository-understanding | implemented |
+| reasoning | `migrate-cross-package-api` | workflow | multi-stage | repository-understanding | implemented |
+| execution | `create-to-spec` | focused | short | task-effectiveness | implemented |
+| execution | `fix-failing-test` | focused | short | task-effectiveness | implemented |
+| execution | `preserve-user-wip` | focused | short | user-work-protection | implemented |
+| execution | `follow-repository-instructions` | focused | short | instruction-adherence | implemented |
+| execution | `remove-deprecated-module` | focused | short | user-work-protection | implemented |
+| execution | `resolve-conflict-preserving-behavior` | focused | short | user-work-protection | implemented |
+| execution | `regenerate-derived-source` | focused | multi-stage | instruction-adherence | implemented |
+| execution | `preserve-header-contract` | workflow | multi-stage | change-discipline | implemented |
+| execution | `refactor-shared-validation` | workflow | multi-stage | change-discipline | implemented |
+| execution | `repair-concurrent-cache` | workflow | multi-stage | task-effectiveness | implemented |
+| execution | `add-timeout-option-workflow` | workflow | long-horizon | task-effectiveness | implemented |
+| recovery | `recover-transient-verification` | focused | short | recovery-resilience | implemented |
+| recovery | `fallback-after-tool-failure` | focused | multi-stage | recovery-resilience | implemented |
+| recovery | `resume-partial-migration` | workflow | multi-stage | recovery-resilience | implemented |
+| verification | `add-regression-coverage` | focused | short | verification-quality | implemented |
+| verification | `accurate-change-handoff` | focused | short | communication-handoff | implemented |
+| verification | `restore-cli-error-contract` | workflow | multi-stage | verification-quality | implemented |
+| verification | `verify-cross-layer-fix` | workflow | multi-stage | verification-quality | implemented |
 
-Every new case must be assigned either `focused` or `workflow`. It is then added
-to the next version of the matching profile and the next version of the full
-profile. A case joins the smoke profile only when it is fast and representative.
+Profile order is stable. Within a module, cases move from lower dependency
+complexity to higher dependency complexity.
 
-Qualities and expected dispositions remain internal measurement metadata. Do
-not create additional user-facing categories unless repeated real use shows
-that the four recommended profiles are insufficient.
+## Admission rules
+
+A new portable case must:
+
+1. Declare exactly one primary module, one level, and one horizon.
+2. Include workspace, solution, plausible counterexample, known-good evidence,
+   and known-bad evidence.
+3. Pass initial-workspace, solution, counterexample, and evidence admission.
+4. Use exact allowed writes and protect unrelated repository material.
+5. Grade tool use through facts, changes, and verification evidence rather than
+   a product-specific tool name or call count.
+6. Join exactly one module profile and appear exactly once in the full profile.
+
+Long-horizon currently means a substantial dependency chain inside one public
+CLI run. Cross-session pause and resume are outside this version.

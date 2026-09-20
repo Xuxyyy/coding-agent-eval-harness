@@ -35,6 +35,28 @@ function definition(disposition: 'implemented' | 'blocked' = 'implemented') {
   }, 'case.json', '/case');
 }
 
+function exactDefinition() {
+  return parseCase({
+    schemaVersion: 4,
+    id: 'exact-behavior-case',
+    level: 'focused',
+    primaryModule: 'recovery',
+    horizon: 'multi-stage',
+    primaryQuality: 'recovery-resilience',
+    supportingQualities: [],
+    startState: 'unsolved',
+    expectedDisposition: 'implemented',
+    task: {prompt: 'Use one fallback.', maxSeconds: 10},
+    grade: {allowedWrites: ['src/value.js'], checks: [{kind: 'exists', path: 'src/value.js'}]},
+    trialChecks: {
+      finalResponse: {required: ['fallback'], forbidden: []},
+      controlledEvents: [{
+        probeId: 'native', strategy: 'unavailable', match: 'exact', outcomes: ['unavailable'],
+      }],
+    },
+  }, 'case.json', '/case');
+}
+
 const recovery: ControlledEvent[] = [
   {sequence: 1, probeId: 'verification', outcome: 'transient-failure'},
   {sequence: 2, probeId: 'verification', outcome: 'passed'},
@@ -86,4 +108,18 @@ test('behavior grade allows extra benign events but enforces blocked terminal se
   assert.equal(gradeTrialBehavior(
     blockedDefinition, 'completed', 'src/value.js; node --test', [], repositoryGrade,
   ).dispositionPassed, false);
+});
+
+test('version 4 exact probes reject repeated unavailable calls', () => {
+  const once: ControlledEvent[] = [{sequence: 1, probeId: 'native', outcome: 'unavailable'}];
+  const twice: ControlledEvent[] = [
+    ...once,
+    {sequence: 2, probeId: 'native', outcome: 'unavailable'},
+  ];
+  assert.equal(gradeTrialBehavior(
+    exactDefinition(), 'completed', 'Used the fallback.', once, repositoryGrade,
+  ).controlledEvents.passed, true);
+  assert.equal(gradeTrialBehavior(
+    exactDefinition(), 'completed', 'Used the fallback.', twice, repositoryGrade,
+  ).controlledEvents.passed, false);
 });

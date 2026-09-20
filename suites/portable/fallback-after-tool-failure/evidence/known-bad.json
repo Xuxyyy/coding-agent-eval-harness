@@ -1,0 +1,7 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "The native verifier was unavailable, so verification could not be completed.",
+  "controlledEvents": [
+    {"sequence": 1, "probeId": "native-verification", "outcome": "unavailable"}
+  ]
+}

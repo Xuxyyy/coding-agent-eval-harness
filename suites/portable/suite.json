@@ -1,145 +1,89 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "portable",
   "profiles": [
     {
-      "id": "smoke-v1",
+      "id": "reasoning-v1",
+      "module": "reasoning",
       "caseIds": [
-        "create-to-spec",
         "already-correct-no-op",
-        "preserve-user-wip"
-      ],
-      "repeats": 1
-    },
-    {
-      "id": "focused-v1",
-      "caseIds": [
-        "create-to-spec",
-        "fix-failing-test",
-        "preserve-user-wip",
-        "already-correct-no-op",
-        "follow-repository-instructions",
-        "add-regression-coverage",
-        "recover-transient-verification",
-        "accurate-change-handoff",
         "block-on-missing-contract",
-        "remove-deprecated-module"
-      ],
-      "repeats": 1
-    },
-    {
-      "id": "workflow-v1",
-      "caseIds": [
-        "repair-config-flow",
-        "preserve-header-contract"
-      ],
-      "repeats": 1
-    },
-    {
-      "id": "full-v1",
-      "caseIds": [
-        "create-to-spec",
-        "fix-failing-test",
-        "preserve-user-wip",
-        "already-correct-no-op",
-        "follow-repository-instructions",
-        "add-regression-coverage",
-        "recover-transient-verification",
-        "accurate-change-handoff",
-        "block-on-missing-contract",
-        "remove-deprecated-module",
-        "repair-config-flow",
-        "preserve-header-contract"
-      ],
-      "repeats": 1
-    },
-    {
-      "id": "smoke-v2",
-      "caseIds": [
-        "create-to-spec",
-        "preserve-user-wip",
         "diagnose-root-cause",
+        "repair-stale-test-contract",
+        "trace-actual-runtime-path",
+        "repair-config-flow",
         "migrate-cross-package-api"
       ],
       "repeats": 1
     },
     {
-      "id": "focused-v2",
+      "id": "execution-v1",
+      "module": "execution",
       "caseIds": [
         "create-to-spec",
         "fix-failing-test",
         "preserve-user-wip",
-        "already-correct-no-op",
         "follow-repository-instructions",
-        "add-regression-coverage",
-        "recover-transient-verification",
-        "accurate-change-handoff",
-        "block-on-missing-contract",
         "remove-deprecated-module",
-        "diagnose-root-cause",
-        "repair-stale-test-contract",
-        "regenerate-derived-source",
-        "resolve-conflict-preserving-behavior"
-      ],
-      "repeats": 1
-    },
-    {
-      "id": "workflow-v2",
-      "caseIds": [
-        "repair-config-flow",
-        "preserve-header-contract",
-        "refactor-shared-validation",
-        "migrate-cross-package-api",
-        "repair-concurrent-cache",
-        "restore-cli-error-contract"
-      ],
-      "repeats": 1
-    },
-    {
-      "id": "full-v2",
-      "caseIds": [
-        "create-to-spec",
-        "fix-failing-test",
-        "preserve-user-wip",
-        "already-correct-no-op",
-        "follow-repository-instructions",
-        "add-regression-coverage",
-        "recover-transient-verification",
-        "accurate-change-handoff",
-        "block-on-missing-contract",
-        "remove-deprecated-module",
-        "diagnose-root-cause",
-        "repair-stale-test-contract",
-        "regenerate-derived-source",
         "resolve-conflict-preserving-behavior",
-        "repair-config-flow",
+        "regenerate-derived-source",
         "preserve-header-contract",
         "refactor-shared-validation",
-        "migrate-cross-package-api",
         "repair-concurrent-cache",
-        "restore-cli-error-contract"
+        "add-timeout-option-workflow"
       ],
       "repeats": 1
     },
     {
-      "id": "foundation-v1",
+      "id": "recovery-v1",
+      "module": "recovery",
       "caseIds": [
+        "recover-transient-verification",
+        "fallback-after-tool-failure",
+        "resume-partial-migration"
+      ],
+      "repeats": 1
+    },
+    {
+      "id": "verification-v1",
+      "module": "verification",
+      "caseIds": [
+        "add-regression-coverage",
+        "accurate-change-handoff",
+        "restore-cli-error-contract",
+        "verify-cross-layer-fix"
+      ],
+      "repeats": 1
+    },
+    {
+      "id": "full-agent-v1",
+      "module": "all",
+      "caseIds": [
+        "already-correct-no-op",
+        "block-on-missing-contract",
+        "diagnose-root-cause",
+        "repair-stale-test-contract",
+        "trace-actual-runtime-path",
+        "repair-config-flow",
+        "migrate-cross-package-api",
         "create-to-spec",
         "fix-failing-test",
         "preserve-user-wip",
-        "already-correct-no-op",
         "follow-repository-instructions",
-        "add-regression-coverage"
-      ],
-      "repeats": 3
-    },
-    {
-      "id": "measurement-v1",
-      "caseIds": [
+        "remove-deprecated-module",
+        "resolve-conflict-preserving-behavior",
+        "regenerate-derived-source",
+        "preserve-header-contract",
+        "refactor-shared-validation",
+        "repair-concurrent-cache",
+        "add-timeout-option-workflow",
         "recover-transient-verification",
+        "fallback-after-tool-failure",
+        "resume-partial-migration",
+        "add-regression-coverage",
         "accurate-change-handoff",
-        "block-on-missing-contract",
-        "remove-deprecated-module"
+        "restore-cli-error-contract",
+        "verify-cross-layer-fix"
       ],
       "repeats": 1
     }

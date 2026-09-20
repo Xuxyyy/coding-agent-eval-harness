@@ -1,9 +1,15 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "regenerate-derived-source",
   "level": "focused",
+  "primaryModule": "execution",
+  "horizon": "multi-stage",
   "primaryQuality": "instruction-adherence",
-  "supportingQualities": ["verification-quality", "change-discipline", "task-effectiveness"],
+  "supportingQualities": [
+    "verification-quality",
+    "change-discipline",
+    "task-effectiveness"
+  ],
   "startState": "unsolved",
   "expectedDisposition": "implemented",
   "task": {
@@ -11,19 +17,63 @@
     "maxSeconds": 120
   },
   "grade": {
-    "allowedWrites": ["definitions/colors.js", "src/colors.generated.js"],
+    "allowedWrites": [
+      "definitions/colors.js",
+      "src/colors.generated.js"
+    ],
     "checks": [
-      {"kind": "exit0", "command": "npm test"},
-      {"kind": "exit0", "command": "node scripts/verify-generated.mjs"},
-      {"kind": "contains", "path": "definitions/colors.js", "text": "'blue'"},
-      {"kind": "contains", "path": "src/colors.generated.js", "text": "\"blue\""},
-      {"kind": "unchanged", "path": "AGENTS.md"},
-      {"kind": "unchanged", "path": "scripts/generate.mjs"},
-      {"kind": "unchanged", "path": "scripts/verify-generated.mjs"},
-      {"kind": "unchanged", "path": "test/colors.test.js"},
-      {"kind": "unchanged", "path": "README.md"},
-      {"kind": "unchanged", "path": "package.json"}
+      {
+        "kind": "exit0",
+        "command": "npm test"
+      },
+      {
+        "kind": "exit0",
+        "command": "node scripts/verify-generated.mjs"
+      },
+      {
+        "kind": "contains",
+        "path": "definitions/colors.js",
+        "text": "'blue'"
+      },
+      {
+        "kind": "contains",
+        "path": "src/colors.generated.js",
+        "text": "\"blue\""
+      },
+      {
+        "kind": "unchanged",
+        "path": "AGENTS.md"
+      },
+      {
+        "kind": "unchanged",
+        "path": "scripts/generate.mjs"
+      },
+      {
+        "kind": "unchanged",
+        "path": "scripts/verify-generated.mjs"
+      },
+      {
+        "kind": "unchanged",
+        "path": "test/colors.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "README.md"
+      },
+      {
+        "kind": "unchanged",
+        "path": "package.json"
+      }
     ]
   },
-  "trialChecks": {"finalResponse": {"required": ["definitions/colors\\.js", "src/colors\\.generated\\.js"], "forbidden": []}, "controlledEvents": []}
+  "trialChecks": {
+    "finalResponse": {
+      "required": [
+        "definitions/colors\\.js",
+        "src/colors\\.generated\\.js"
+      ],
+      "forbidden": []
+    },
+    "controlledEvents": []
+  }
 }

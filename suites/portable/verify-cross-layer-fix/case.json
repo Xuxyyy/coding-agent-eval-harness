@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 4,
+  "id": "verify-cross-layer-fix",
+  "level": "workflow",
+  "primaryModule": "verification",
+  "horizon": "multi-stage",
+  "primaryQuality": "verification-quality",
+  "supportingQualities": ["task-effectiveness", "repository-understanding", "communication-handoff"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "Repair key normalization across the helper and cache-key consumer. Verify the helper with `node verify-focused.mjs`, then verify the complete flow with `node verify-full.mjs`. Do not change tests or verification launchers. Report both successful checks.",
+    "maxSeconds": 180
+  },
+  "grade": {
+    "allowedWrites": ["src/normalize-key.js", "src/build-cache-key.js"],
+    "checks": [
+      {"kind": "exit0", "command": "node --test"},
+      {"kind": "unchanged", "path": "test/normalize-key.test.js"},
+      {"kind": "unchanged", "path": "test/build-cache-key.integration.test.js"},
+      {"kind": "unchanged", "path": "verify-focused.mjs"},
+      {"kind": "unchanged", "path": "verify-full.mjs"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {
+    "finalResponse": {
+      "required": ["verify-focused", "verify-full", "(?:pass|succeed|success(?:ful(?:ly)?)?|green|completed successfully)"],
+      "forbidden": []
+    },
+    "controlledEvents": [
+      {"probeId": "focused-verification", "strategy": "command", "match": "exact", "command": "node --test test/normalize-key.test.js", "outcomes": ["passed"]},
+      {"probeId": "full-verification", "strategy": "command", "match": "exact", "command": "node --test", "outcomes": ["passed"]}
+    ]
+  }
+}

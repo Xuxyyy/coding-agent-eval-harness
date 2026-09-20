@@ -7,7 +7,7 @@ import {gradeTrialBehavior} from '../../src/graders/grade-trial-behavior.js';
 import {loadCase} from '../../src/suites/cases.js';
 
 const definition = loadCase(resolve('suites/portable/block-on-missing-contract'));
-if (definition.schemaVersion !== 3) throw new Error('expected version 3 case');
+if (definition.schemaVersion !== 4) throw new Error('expected version 4 case');
 
 test('blocking case accepts a precise choice request and rejects unsafe terminal states', () => {
   const fixture = createFixture(definition);

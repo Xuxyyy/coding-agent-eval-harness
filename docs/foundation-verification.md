@@ -76,8 +76,8 @@ provider call was made.
 - Work stayed on `main` and modified only this repository.
 - The sibling `coding-cli` repository was read only and remained clean before
   and after every independent gate.
-- The active planning set contains only `project-goal.md`,
-  `user-centered-evaluation-standard.md`, and
+- At verification time, the active planning set contained only
+  `project-goal.md`, `user-centered-evaluation-standard.md`, and
   `establish-user-centered-conformance-foundation.md`.
 - Fixture provenance and uncovered quality gaps are recorded in
   `suites/portable/README.md`.

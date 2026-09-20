@@ -32,8 +32,8 @@ const protectedTest: Record<(typeof ids)[number], string> = {
 test('v2 additions reject comments-only work, protected deletion, and unrelated churn', () => {
   for (const id of ids) {
     const definition = loadCase(resolve('suites/portable', id));
-    assert.equal(definition.schemaVersion, 3);
-    if (definition.schemaVersion !== 3) continue;
+    assert.equal(definition.schemaVersion, 4);
+    if (definition.schemaVersion !== 4) continue;
 
     const commentsOnly = createFixture(definition);
     try {
@@ -68,8 +68,8 @@ test('v2 additions reject comments-only work, protected deletion, and unrelated 
 
 test('diagnosis accepts an equivalent factual report and rejects a symptom-only answer', () => {
   const definition = loadCase(resolve('suites/portable/diagnose-root-cause'));
-  assert.equal(definition.schemaVersion, 3);
-  if (definition.schemaVersion !== 3) return;
+  assert.equal(definition.schemaVersion, 4);
+  if (definition.schemaVersion !== 4) return;
   const fixture = createFixture(definition);
   try {
     const repository = gradeCase(definition, fixture.root, fixture.before);

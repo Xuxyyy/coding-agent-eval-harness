@@ -1,0 +1,9 @@
+{
+  "name": "add-timeout-option-workflow-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node scripts/generate-options.mjs",
+    "test": "node --test"
+  }
+}

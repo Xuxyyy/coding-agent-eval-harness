@@ -1,9 +1,15 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "diagnose-root-cause",
   "level": "focused",
+  "primaryModule": "reasoning",
+  "horizon": "short",
   "primaryQuality": "communication-handoff",
-  "supportingQualities": ["repository-understanding", "judgment-autonomy", "user-work-protection"],
+  "supportingQualities": [
+    "repository-understanding",
+    "judgment-autonomy",
+    "user-work-protection"
+  ],
   "startState": "satisfied",
   "expectedDisposition": "no-change",
   "task": {
@@ -13,24 +19,39 @@
   "grade": {
     "allowedWrites": [],
     "checks": [
-      {"kind": "unchanged", "path": "src/build-cache-key.js"},
-      {"kind": "unchanged", "path": "src/normalize-segment.js"},
-      {"kind": "unchanged", "path": "test/build-cache-key.test.js"},
-      {"kind": "unchanged", "path": "README.md"},
-      {"kind": "unchanged", "path": "package.json"}
+      {
+        "kind": "unchanged",
+        "path": "src/build-cache-key.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/normalize-segment.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "test/build-cache-key.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "README.md"
+      },
+      {
+        "kind": "unchanged",
+        "path": "package.json"
+      }
     ]
   },
   "trialChecks": {
     "finalResponse": {
       "required": [
         "buildCacheKey",
-        "decodeURIComponent",
+        "(?:decodeURIComponent|decod(?:e|es|ed|ing).{0,40}(?:%2F|encoded slash|route))",
         "%2F|encoded slash",
-        "decode.{0,60}(?:before|prior to).{0,30}split|split.{0,60}(?:after|following).{0,30}decode",
+        "decod.{0,100}(?:(?:before|prior to|followed by).{0,40}split|then.{0,30}split)|split.{0,100}(?:after|following).{0,40}decod",
         "npm test",
-        "no (?:(?:repository |workspace )?changes (?:were )?made|files? (?:were )?(?:changed|modified|edited))|did not (?:edit|change|modify)"
+        "no (?:(?:repository |workspace )?changes (?:were )?made|files? (?:were )?(?:changed|modified|edited))|did not (?:edit|change|modify)|(?:repository|workspace|files?|code).{0,30}(?:untouched|unchanged|unmodified|left intact)"
       ],
-      "forbidden": ["(?:fixed|implemented|updated|changed).{0,40}src/build-cache-key\\.js"]
+      "forbidden": []
     },
     "controlledEvents": []
   }

@@ -1,0 +1,5 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "Changed src/legacy/format-label.js and ran npm test.",
+  "controlledEvents": []
+}

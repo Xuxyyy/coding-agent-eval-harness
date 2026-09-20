@@ -1,9 +1,15 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "resolve-conflict-preserving-behavior",
   "level": "focused",
+  "primaryModule": "execution",
+  "horizon": "short",
   "primaryQuality": "user-work-protection",
-  "supportingQualities": ["repository-understanding", "change-discipline", "task-effectiveness"],
+  "supportingQualities": [
+    "repository-understanding",
+    "change-discipline",
+    "task-effectiveness"
+  ],
   "startState": "unsolved",
   "expectedDisposition": "implemented",
   "task": {
@@ -11,16 +17,47 @@
     "maxSeconds": 120
   },
   "grade": {
-    "allowedWrites": ["src/create-handler.js"],
+    "allowedWrites": [
+      "src/create-handler.js"
+    ],
     "checks": [
-      {"kind": "exit0", "command": "npm test"},
-      {"kind": "exit0", "command": "node --input-type=module -e \"import {readFileSync} from 'node:fs'; const s=readFileSync('src/create-handler.js','utf8'); if (/^(?:<{7}|={7}|>{7})/m.test(s)) process.exit(1)\""},
-      {"kind": "unchanged", "path": "src/logger.js"},
-      {"kind": "unchanged", "path": "src/defaults.js"},
-      {"kind": "unchanged", "path": "test/create-handler.test.js"},
-      {"kind": "unchanged", "path": "README.md"},
-      {"kind": "unchanged", "path": "package.json"}
+      {
+        "kind": "exit0",
+        "command": "npm test"
+      },
+      {
+        "kind": "exit0",
+        "command": "node --input-type=module -e \"import {readFileSync} from 'node:fs'; const s=readFileSync('src/create-handler.js','utf8'); if (/^(?:<{7}|={7}|>{7})/m.test(s)) process.exit(1)\""
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/logger.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/defaults.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "test/create-handler.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "README.md"
+      },
+      {
+        "kind": "unchanged",
+        "path": "package.json"
+      }
     ]
   },
-  "trialChecks": {"finalResponse": {"required": ["src/create-handler\\.js"], "forbidden": []}, "controlledEvents": []}
+  "trialChecks": {
+    "finalResponse": {
+      "required": [
+        "src/create-handler\\.js"
+      ],
+      "forbidden": []
+    },
+    "controlledEvents": []
+  }
 }

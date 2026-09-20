@@ -32,7 +32,7 @@ Options:
   -h, --help                Show this help
 
 Inspect:
-  --result <jsonl>          Version 2, 3, or 4 result JSONL
+  --result <jsonl>          Version 2, 3, 4, or 5 result JSONL
   --case <id>               Select one exact case ID
   --repeat <number>         Select one exact repeat number
 `;

@@ -1,0 +1,6 @@
+{
+  "name": "verify-cross-layer-fix-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test"}
+}

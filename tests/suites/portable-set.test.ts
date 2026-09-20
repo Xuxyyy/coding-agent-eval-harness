@@ -6,17 +6,19 @@ import {loadCases, loadSuite} from '../../src/suites/cases.js';
 import {applyOverlay, createFixture, removeFixture} from '../../src/environments/fixture.js';
 import {gradeCase} from '../../src/graders/grade-case.js';
 import {gradeTrialBehavior} from '../../src/graders/grade-trial-behavior.js';
-import type {CaseQuality, StartState} from '../../src/types/index.js';
+import type {CaseHorizon, CaseModule, CaseQuality, StartState} from '../../src/types/index.js';
 
 const suiteRoot = resolve('suites/portable');
 
 const expected = [
   'accurate-change-handoff',
   'add-regression-coverage',
+  'add-timeout-option-workflow',
   'already-correct-no-op',
   'block-on-missing-contract',
   'create-to-spec',
   'diagnose-root-cause',
+  'fallback-after-tool-failure',
   'fix-failing-test',
   'follow-repository-instructions',
   'migrate-cross-package-api',
@@ -31,6 +33,9 @@ const expected = [
   'repair-stale-test-contract',
   'resolve-conflict-preserving-behavior',
   'restore-cli-error-contract',
+  'resume-partial-migration',
+  'trace-actual-runtime-path',
+  'verify-cross-layer-fix',
 ];
 
 const matrix: Record<string, {
@@ -131,18 +136,76 @@ const matrix: Record<string, {
     startState: 'unsolved', primaryQuality: 'verification-quality',
     supportingQualities: ['task-effectiveness', 'repository-understanding', 'change-discipline'],
   },
+  'trace-actual-runtime-path': {
+    startState: 'unsolved', primaryQuality: 'repository-understanding',
+    supportingQualities: ['task-effectiveness', 'change-discipline', 'verification-quality'],
+  },
+  'add-timeout-option-workflow': {
+    startState: 'unsolved', primaryQuality: 'task-effectiveness',
+    supportingQualities: ['repository-understanding', 'instruction-adherence', 'verification-quality'],
+  },
+  'fallback-after-tool-failure': {
+    startState: 'unsolved', primaryQuality: 'recovery-resilience',
+    supportingQualities: ['verification-quality', 'task-effectiveness', 'communication-handoff'],
+  },
+  'resume-partial-migration': {
+    startState: 'unsolved', primaryQuality: 'recovery-resilience',
+    supportingQualities: ['repository-understanding', 'user-work-protection', 'change-discipline'],
+  },
+  'verify-cross-layer-fix': {
+    startState: 'unsolved', primaryQuality: 'verification-quality',
+    supportingQualities: ['task-effectiveness', 'repository-understanding', 'communication-handoff'],
+  },
 };
 
-test('portable inventory and profiles match the reviewed twenty-case contract', () => {
+const moduleCases: Record<CaseModule, string[]> = {
+  reasoning: [
+    'already-correct-no-op', 'block-on-missing-contract', 'diagnose-root-cause',
+    'repair-stale-test-contract', 'trace-actual-runtime-path', 'repair-config-flow',
+    'migrate-cross-package-api',
+  ],
+  execution: [
+    'create-to-spec', 'fix-failing-test', 'preserve-user-wip',
+    'follow-repository-instructions', 'remove-deprecated-module',
+    'resolve-conflict-preserving-behavior', 'regenerate-derived-source',
+    'preserve-header-contract', 'refactor-shared-validation',
+    'repair-concurrent-cache', 'add-timeout-option-workflow',
+  ],
+  recovery: [
+    'recover-transient-verification', 'fallback-after-tool-failure',
+    'resume-partial-migration',
+  ],
+  verification: [
+    'add-regression-coverage', 'accurate-change-handoff',
+    'restore-cli-error-contract', 'verify-cross-layer-fix',
+  ],
+};
+
+const horizons: Record<CaseHorizon, string[]> = {
+  short: [
+    'already-correct-no-op', 'block-on-missing-contract', 'diagnose-root-cause',
+    'repair-stale-test-contract', 'create-to-spec', 'fix-failing-test',
+    'preserve-user-wip', 'follow-repository-instructions', 'remove-deprecated-module',
+    'resolve-conflict-preserving-behavior', 'recover-transient-verification',
+    'add-regression-coverage', 'accurate-change-handoff',
+  ],
+  'multi-stage': [
+    'trace-actual-runtime-path', 'repair-config-flow', 'migrate-cross-package-api',
+    'regenerate-derived-source', 'preserve-header-contract', 'refactor-shared-validation',
+    'repair-concurrent-cache', 'fallback-after-tool-failure', 'resume-partial-migration',
+    'restore-cli-error-contract', 'verify-cross-layer-fix',
+  ],
+  'long-horizon': ['add-timeout-option-workflow'],
+};
+
+test('portable inventory and profiles match the reviewed twenty-five-case contract', () => {
   const cases = loadCases(suiteRoot);
   assert.deepEqual(cases.map((item) => item.id), expected);
-  assert.equal(cases.filter((item) => item.schemaVersion === 2 && item.level === 'focused').length, 6);
-  assert.equal(cases.filter((item) => item.schemaVersion === 2 && item.level === 'workflow').length, 2);
-  assert.equal(cases.filter((item) => item.schemaVersion === 3 && item.level === 'focused').length, 8);
-  assert.equal(cases.filter((item) => item.schemaVersion === 3 && item.level === 'workflow').length, 4);
+  assert.equal(cases.filter((item) => item.schemaVersion === 4 && item.level === 'focused').length, 15);
+  assert.equal(cases.filter((item) => item.schemaVersion === 4 && item.level === 'workflow').length, 10);
   for (const definition of cases) {
-    assert.notEqual(definition.schemaVersion, 1, `${definition.id}: must use a conformance schema`);
-    if (definition.schemaVersion === 1) continue;
+    assert.equal(definition.schemaVersion, 4, `${definition.id}: must use the module schema`);
+    if (definition.schemaVersion !== 4) continue;
     assert.equal(
       definition.level,
       [
@@ -152,6 +215,10 @@ test('portable inventory and profiles match the reviewed twenty-case contract', 
         'migrate-cross-package-api',
         'repair-concurrent-cache',
         'restore-cli-error-contract',
+        'trace-actual-runtime-path',
+        'add-timeout-option-workflow',
+        'resume-partial-migration',
+        'verify-cross-layer-fix',
       ].includes(definition.id)
         ? 'workflow'
         : 'focused',
@@ -164,6 +231,14 @@ test('portable inventory and profiles match the reviewed twenty-case contract', 
       },
       matrix[definition.id],
     );
+    assert.equal(
+      definition.primaryModule,
+      Object.entries(moduleCases).find(([, ids]) => ids.includes(definition.id))?.[0],
+    );
+    assert.equal(
+      definition.horizon,
+      Object.entries(horizons).find(([, ids]) => ids.includes(definition.id))?.[0],
+    );
     const manifest = readFileSync(resolve(definition.dir, 'case.json'), 'utf8');
     assert.doesNotMatch(
       manifest,
@@ -174,142 +249,21 @@ test('portable inventory and profiles match the reviewed twenty-case contract', 
 
   const suite = loadSuite(suiteRoot, cases);
   assert.equal(suite.id, 'portable');
-  assert.deepEqual(suite.profiles, [
-    {
-      id: 'smoke-v1',
-      caseIds: ['create-to-spec', 'already-correct-no-op', 'preserve-user-wip'],
-      repeats: 1,
-    },
-    {
-      id: 'focused-v1',
-      caseIds: [
-        'create-to-spec',
-        'fix-failing-test',
-        'preserve-user-wip',
-        'already-correct-no-op',
-        'follow-repository-instructions',
-        'add-regression-coverage',
-        'recover-transient-verification',
-        'accurate-change-handoff',
-        'block-on-missing-contract',
-        'remove-deprecated-module',
-      ],
-      repeats: 1,
-    },
-    {
-      id: 'workflow-v1',
-      caseIds: ['repair-config-flow', 'preserve-header-contract'],
-      repeats: 1,
-    },
-    {
-      id: 'full-v1',
-      caseIds: [
-        'create-to-spec',
-        'fix-failing-test',
-        'preserve-user-wip',
-        'already-correct-no-op',
-        'follow-repository-instructions',
-        'add-regression-coverage',
-        'recover-transient-verification',
-        'accurate-change-handoff',
-        'block-on-missing-contract',
-        'remove-deprecated-module',
-        'repair-config-flow',
-        'preserve-header-contract',
-      ],
-      repeats: 1,
-    },
-    {
-      id: 'smoke-v2',
-      caseIds: [
-        'create-to-spec',
-        'preserve-user-wip',
-        'diagnose-root-cause',
-        'migrate-cross-package-api',
-      ],
-      repeats: 1,
-    },
-    {
-      id: 'focused-v2',
-      caseIds: [
-        'create-to-spec',
-        'fix-failing-test',
-        'preserve-user-wip',
-        'already-correct-no-op',
-        'follow-repository-instructions',
-        'add-regression-coverage',
-        'recover-transient-verification',
-        'accurate-change-handoff',
-        'block-on-missing-contract',
-        'remove-deprecated-module',
-        'diagnose-root-cause',
-        'repair-stale-test-contract',
-        'regenerate-derived-source',
-        'resolve-conflict-preserving-behavior',
-      ],
-      repeats: 1,
-    },
-    {
-      id: 'workflow-v2',
-      caseIds: [
-        'repair-config-flow',
-        'preserve-header-contract',
-        'refactor-shared-validation',
-        'migrate-cross-package-api',
-        'repair-concurrent-cache',
-        'restore-cli-error-contract',
-      ],
-      repeats: 1,
-    },
-    {
-      id: 'full-v2',
-      caseIds: [
-        'create-to-spec',
-        'fix-failing-test',
-        'preserve-user-wip',
-        'already-correct-no-op',
-        'follow-repository-instructions',
-        'add-regression-coverage',
-        'recover-transient-verification',
-        'accurate-change-handoff',
-        'block-on-missing-contract',
-        'remove-deprecated-module',
-        'diagnose-root-cause',
-        'repair-stale-test-contract',
-        'regenerate-derived-source',
-        'resolve-conflict-preserving-behavior',
-        'repair-config-flow',
-        'preserve-header-contract',
-        'refactor-shared-validation',
-        'migrate-cross-package-api',
-        'repair-concurrent-cache',
-        'restore-cli-error-contract',
-      ],
-      repeats: 1,
-    },
-    {
-      id: 'foundation-v1',
-      caseIds: [
-        'create-to-spec',
-        'fix-failing-test',
-        'preserve-user-wip',
-        'already-correct-no-op',
-        'follow-repository-instructions',
-        'add-regression-coverage',
-      ],
-      repeats: 3,
-    },
-    {
-      id: 'measurement-v1',
-      caseIds: [
-        'recover-transient-verification',
-        'accurate-change-handoff',
-        'block-on-missing-contract',
-        'remove-deprecated-module',
-      ],
-      repeats: 1,
-    },
-  ]);
+  assert.equal(suite.schemaVersion, 2);
+  assert.deepEqual(
+    suite.profiles,
+    [
+      ...(['reasoning', 'execution', 'recovery', 'verification'] as const).map((module) => ({
+        id: `${module}-v1`, module, caseIds: moduleCases[module], repeats: 1,
+      })),
+      {
+        id: 'full-agent-v1', module: 'all',
+        caseIds: (['reasoning', 'execution', 'recovery', 'verification'] as const)
+          .flatMap((module) => moduleCases[module]),
+        repeats: 1,
+      },
+    ],
+  );
 });
 
 test('the complete portable set admits both start states and rejects every counterexample', () => {
@@ -349,7 +303,7 @@ test('the complete portable set admits both start states and rejects every count
         assert.deepEqual(definition.grade.allowedWrites, []);
         assert.deepEqual(changed, [], `${definition.id}: empty solution must make no changes`);
       }
-      if (definition.schemaVersion === 3) {
+      if (definition.schemaVersion === 4) {
         const evidence = definition.evidence.knownGood;
         const behavior = gradeTrialBehavior(
           definition, evidence.terminalStatus, evidence.finalMessage, evidence.controlledEvents, grade,
@@ -364,7 +318,7 @@ test('the complete portable set admits both start states and rejects every count
     try {
       applyOverlay(definition, counterexample.root, 'counterexample');
       const grade = gradeCase(definition, counterexample.root, counterexample.before);
-      if (definition.schemaVersion === 3) {
+      if (definition.schemaVersion === 4) {
         const evidence = definition.evidence.knownBad;
         const behavior = gradeTrialBehavior(
           definition, evidence.terminalStatus, evidence.finalMessage, evidence.controlledEvents, grade,

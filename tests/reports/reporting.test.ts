@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {aggregate} from '../../src/reports/aggregate.js';
 import {profileVerdict} from '../../src/reports/profile-verdict.js';
-import type {CaseQuality, TrialRecord} from '../../src/types/index.js';
+import type {CaseModule, CaseQuality, TrialRecord} from '../../src/types/index.js';
 
 function trial(
   caseId: string,
   status: TrialRecord['status'],
   repeat = 1,
   primaryQuality: CaseQuality | null = null,
+  primaryModule: CaseModule | null = null,
 ): TrialRecord {
   const repositoryPassed = status === 'pass';
   const repositoryGrade = {
@@ -32,6 +33,8 @@ function trial(
     adapter: 'fake',
     requestedModel: null,
     level: null,
+    primaryModule,
+    horizon: null,
     primaryQuality,
     supportingQualities: [],
     startState: null,
@@ -73,14 +76,15 @@ test('aggregate excludes errors from rates and combines repeated cases', () => {
     {id: 'b', total: 1, required: null, complete: null, scored: 0, errors: 1, passes: 0},
   ]);
   assert.deepEqual(report.byPrimaryQuality, []);
+  assert.deepEqual(report.byPrimaryModule, []);
 });
 
 test('aggregate reports primary qualities and repeat completeness', () => {
   const report = aggregate(
     [
-      trial('a', 'pass', 1, 'task-effectiveness'),
-      trial('a', 'fail', 2, 'task-effectiveness'),
-      trial('b', 'error', 1, 'verification-quality'),
+      trial('a', 'pass', 1, 'task-effectiveness', 'execution'),
+      trial('a', 'fail', 2, 'task-effectiveness', 'execution'),
+      trial('b', 'error', 1, 'verification-quality', 'verification'),
     ],
     {caseIds: ['a', 'b'], repeats: 2},
   );
@@ -101,6 +105,16 @@ test('aggregate reports primary qualities and repeat completeness', () => {
       total: 1,
       scored: 0,
       errors: 1,
+      passes: {count: 0, of: 0, rate: null},
+    },
+  ]);
+  assert.deepEqual(report.byPrimaryModule, [
+    {
+      module: 'execution', total: 2, scored: 2, errors: 0,
+      passes: {count: 1, of: 2, rate: 0.5},
+    },
+    {
+      module: 'verification', total: 1, scored: 0, errors: 1,
       passes: {count: 0, of: 0, rate: null},
     },
   ]);

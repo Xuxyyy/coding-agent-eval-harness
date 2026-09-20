@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 4,
+  "id": "add-timeout-option-workflow",
+  "level": "workflow",
+  "primaryModule": "execution",
+  "horizon": "long-horizon",
+  "primaryQuality": "task-effectiveness",
+  "supportingQualities": ["repository-understanding", "instruction-adherence", "verification-quality"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "Add a `requestTimeoutMs` option across the complete configuration workflow. Define a 5000 ms default in `definitions/options.js`, regenerate the derived source, support project config and `TOOL_TIMEOUT_MS`, add `--timeout <ms>` as the highest-precedence app input, pass the resolved timeout to both app and plugin clients, and add regression coverage. Do not edit the generator, existing tests, verifier, package metadata, or documentation. Verify with `npm test`, `npm run generate -- --check`, and `node verify-timeout.mjs`.",
+    "maxSeconds": 300
+  },
+  "grade": {
+    "allowedWrites": [
+      "definitions/options.js",
+      "src/options.generated.js",
+      "src/resolve-options.js",
+      "src/parse-cli.js",
+      "src/runtime-client.js",
+      "src/app.js",
+      "src/plugin.js",
+      "test/timeout-regression.test.js"
+    ],
+    "checks": [
+      {"kind": "exit0", "command": "npm test"},
+      {"kind": "exit0", "command": "npm run generate -- --check"},
+      {"kind": "exit0", "command": "node verify-timeout.mjs"},
+      {"kind": "unchanged", "path": "scripts/generate-options.mjs"},
+      {"kind": "unchanged", "path": "test/retries.test.js"},
+      {"kind": "unchanged", "path": "verify-timeout.mjs"},
+      {"kind": "unchanged", "path": "README.md"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {
+    "finalResponse": {
+      "required": ["requestTimeoutMs", "generate.{0,30}check", "verify-timeout", "npm test"],
+      "forbidden": []
+    },
+    "controlledEvents": []
+  }
+}

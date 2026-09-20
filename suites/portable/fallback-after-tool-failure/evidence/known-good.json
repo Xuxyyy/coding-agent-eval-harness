@@ -1,0 +1,8 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "The native verifier was unavailable, so I used the portable verifier and it passed.",
+  "controlledEvents": [
+    {"sequence": 1, "probeId": "native-verification", "outcome": "unavailable"},
+    {"sequence": 2, "probeId": "portable-verification", "outcome": "passed"}
+  ]
+}

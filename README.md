@@ -1,39 +1,38 @@
 # Agent Eval Harness
 
-Agent Eval Harness asks a user-centered question: can a coding-agent product
-complete useful repository work correctly, safely, and consistently through
-its public CLI?
+Agent Eval Harness tests coding agents through their public CLI. It asks whether
+an agent can understand repository work, make safe changes, recover from tool
+problems, and verify the result truthfully.
 
-It is a standalone Node.js harness. It runs trusted, deterministic fixtures
-through neutral adapters and never imports a tested product's internals. The
-bundled portable suite is a draft foundation. It is not complete certification,
-a leaderboard, or an overall ranking.
+The harness is a standalone Node.js tool. It runs trusted, deterministic
+fixtures through neutral adapters. It never imports a tested product's
+internals. The bundled portable suite is an evaluation foundation, not a
+leaderboard or complete certification.
 
-## Evaluation model
+## Four-module evaluation model
 
-The standard has four layers:
+Every portable case belongs to exactly one agent-builder module:
 
-1. **Standard and evidence trust** — offline tests prove the fixture, grader,
-   known-good solution, known-bad counterexample, report, and cleanup.
-2. **Focused product behaviors** — small cases isolate one primary quality.
-3. **User journeys** — workflow cases cover bounded end-to-end repository work.
-4. **Public-boundary evidence health** — adapters prove launch, authoritative
-   completion, bounded execution, evidence persistence, and cleanup.
+- `reasoning`: understand the real code path, contract, and right action.
+- `execution`: make the required repository change with controlled scope.
+- `recovery`: respond safely to failed tools or partially completed work.
+- `verification`: gather enough evidence and report it accurately.
 
-Version 2 and 3 cases use nine controlled qualities: `task-effectiveness`,
-`repository-understanding`, `change-discipline`, `user-work-protection`,
-`instruction-adherence`, `verification-quality`, `judgment-autonomy`,
-`recovery-resilience`, and `communication-handoff`. Reliability is
-cross-cutting and comes from a profile's repeat requirement, not one fixture.
+Four other dimensions remain separate:
 
-The current 20-case suite contains fourteen focused cases and six workflow
-cases. It covers all nine controlled qualities as primary evidence and adds
-investigation, stale-test repair, generated-source discipline, conflict
-resolution, shared refactoring, cross-package migration, concurrent caching,
-and process-level CLI verification. The suite makes no reliability claim and
-is still an intermediate milestone, not `product-v1`, complete certification,
-or a repeated real-agent baseline. These limits remain visible in
-[the suite design record](suites/portable/README.md).
+- `level` describes fixture shape: `focused` or `workflow`.
+- `horizon` describes dependency length: `short`, `multi-stage`, or
+  `long-horizon`.
+- `primaryQuality` and `supportingQualities` provide detailed diagnosis.
+- safety rules protect user work, instructions, tests, generators, and
+  unrelated files across every module.
+
+The portable suite has 25 cases. Each bundled profile runs one trial per case,
+so it makes no reliability claim. See
+[the suite taxonomy](docs/suite-taxonomy.md) and
+[the portable suite record](suites/portable/README.md). The offline acceptance
+evidence is preserved in the
+[four-module verification record](docs/four-module-v1-verification.md).
 
 ## Requirements and offline gate
 
@@ -41,20 +40,18 @@ or a repeated real-agent baseline. These limits remain visible in
 - Git
 - macOS or Linux
 
-Install and run the offline gate:
-
 ```sh
 npm install
 npm test
 npm pack --dry-run --json
 ```
 
-Tests and package verification use fake executables. They do not call a model,
-provider, ACC, Codex, or Claude Code, and they do not require network access.
+Tests and package checks use a fake executable. They do not call a model,
+provider, ACC, Codex, or Claude Code. They need no network access.
 
 ## Run a profile
 
-Build first. Then select a trusted cases directory and a named profile:
+Build first, then select one module or the full suite:
 
 ```sh
 npm run build
@@ -62,58 +59,39 @@ node dist/cli/index.js run \
   --agent acc \
   --command "$(command -v acc)" \
   --cases suites/portable \
-  --profile smoke-v2
+  --profile reasoning-v1
 ```
 
-Use an agent-specific shortcut for a bundled profile. Each shortcut builds the
-harness first:
+The five profile IDs are:
+
+- `reasoning-v1`: seven cases.
+- `execution-v1`: eleven cases.
+- `recovery-v1`: three cases.
+- `verification-v1`: four cases.
+- `full-agent-v1`: all 25 cases, ordered by module and dependency complexity.
+
+Use the matching npm shortcuts for ACC, Codex, or Claude Code:
 
 ```sh
-npm run -s eval:smoke:acc
-npm run -s eval:smoke:codex
-npm run -s eval:smoke:claude
-npm run -s eval:focused:acc
-npm run -s eval:focused:codex
-npm run -s eval:focused:claude
-npm run -s eval:workflow:acc
-npm run -s eval:workflow:codex
-npm run -s eval:workflow:claude
-npm run -s eval:full:acc
+npm run -s eval:reasoning:acc
+npm run -s eval:execution:codex
+npm run -s eval:recovery:claude
+npm run -s eval:verification:acc
 npm run -s eval:full:codex
-npm run -s eval:full:claude
 ```
 
-These commands make live provider calls and can consume account credit. The
-ACC shortcuts explicitly use `deepseek-v4-flash`, and the Codex shortcuts use
-`gpt-5.6-luna`. The Claude Code shortcuts use the CLI's configured default
-model. Use `smoke` for a quick check, `focused` for all focused cases,
-`workflow` for all workflow cases, and `full` for all twenty cases. These four
-selection profiles run each case once and make no reliability claim.
+These commands make live provider calls and may consume account credit. ACC
+shortcuts use `deepseek-v4-flash`. Codex shortcuts use `gpt-5.6-luna`. Claude
+Code shortcuts use its configured default model.
 
-The bundled profiles are:
+Old bundled profile IDs are not aliases. They return an unknown-profile error.
+Historical result files remain readable.
 
-- `smoke-v2`: four representative cases, one trial each.
-- `focused-v2`: all fourteen focused cases, one trial each.
-- `workflow-v2`: all six workflow cases, one trial each, in reviewed order.
-- `full-v2`: all twenty cases, one trial each.
+Profile order and repeat count are versioned. `--profile` cannot be combined
+with `--case` or `--repeats`. `--max-seconds` may lower a case limit without
+changing profile identity, and the report records that cap.
 
-Legacy profiles retained for reproducibility are:
-
-- `smoke-v1`, `focused-v1`, `workflow-v1`, and `full-v1`: the original
-  twelve-case selections.
-- `foundation-v1`: six cases, three trials each.
-- `measurement-v1`: four measurement cases, one trial each, in reviewed order.
-
-Legacy profiles have no npm shortcuts. Select their exact IDs with the
-`--profile` option in an explicit `agent-eval run` command when reproducing an
-earlier result.
-
-Profile order and repeat counts are part of the versioned contract.
-`--profile` cannot be combined with `--case` or `--repeats`. `--max-seconds`
-may lower a case limit without changing profile identity, and the cap is
-recorded in the report.
-
-Ad hoc runs remain available:
+Ad hoc runs are also available:
 
 ```sh
 node dist/cli/index.js run \
@@ -124,44 +102,38 @@ node dist/cli/index.js run \
   --repeats 1
 ```
 
-The packaged executable uses the same interface:
+The command value is passed to the operating system as one executable. It is
+never evaluated as a shell command.
 
-```text
-agent-eval run --agent acc|codex|claude --command <executable> --cases <directory> [options]
-```
-
-The command value is passed directly to the operating system as one
-executable. It is not evaluated as a shell command.
-
-Inspect one exact trial after a run:
+Inspect one exact trial:
 
 ```sh
 agent-eval inspect \
-  --result results/2026-01-01T00-00-00-000Z-codex.jsonl \
+  --result results/run.jsonl \
   --case create-to-spec \
   --repeat 1
 ```
 
-Inspection prints bounded sections for identity, status, the final message,
-canonical events, the final Git patch, file changes, checks, errors, cleanup,
-and artifact paths. A readable capability failure still exits 0. Invalid CLI
-input, selection, schema, or artifacts exit 2. Version 2 results remain
-inspectable, but explain that structured artifacts are unavailable.
+Inspection shows module, horizon, primary quality, disposition, status, final
+message, events, patch, checks, cleanup, and artifact paths.
 
-## Case and profile contracts
+## Case and suite contracts
 
-Every case directory contains `case.json`, `workspace/`, `solution/`, and
-`counterexample/`. Version 3 cases also contain reviewed `evidence/` fixtures.
-A version 2 case has explicit repository semantics:
+Each case directory contains `case.json`, `workspace/`, `solution/`,
+`counterexample/`, and reviewed `evidence/`. Current portable cases use schema
+version 4:
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
   "id": "example-case",
   "level": "focused",
+  "primaryModule": "execution",
+  "horizon": "short",
   "primaryQuality": "task-effectiveness",
   "supportingQualities": ["change-discipline"],
   "startState": "unsolved",
+  "expectedDisposition": "implemented",
   "task": {
     "prompt": "Fix the behavior described by the repository.",
     "maxSeconds": 120
@@ -176,128 +148,80 @@ A version 2 case has explicit repository semantics:
 }
 ```
 
-Version 2 supports `exists`, `absent`, `contains`, `matches`, `exit0`, and
-`unchanged`. Paths are normalized workspace-relative paths. Allowed writes are
-exact. Unknown fields, unsafe paths, malformed regular expressions, duplicate
-metadata, missing fixture directories, and symlinks are rejected.
+Repository checks support `exists`, `absent`, `contains`, `matches`, `exit0`,
+and `unchanged`. Allowed writes are exact. Unsafe paths, symlinks, duplicate
+metadata, and unknown fields are rejected.
 
-`startState` is evidence-bearing. An `unsolved` workspace must initially fail
-an outcome check. A `satisfied` workspace must already solve every check and
-stay unchanged. Every solution must solve and remain clean. Every
-counterexample must fail solved-and-clean conformance.
+Schema 4 behavior checks can require or forbid final-response facts. Controlled
+probes support three strategies:
 
-Version 3 keeps those repository rules and adds `expectedDisposition` with one
-of `implemented`, `no-change`, or `blocked`, plus strict `trialChecks` for
-case-authored final-response regular expressions and ordered harness-owned
-probe outcomes. Required and forbidden response patterns are case-insensitive.
-Controlled probe events are stored outside the editable workspace, copied into
-the immutable trial artifact after validation, and removed with their per-trial
-control directory. Complete repository and behavior conformance decides whether
-known-bad evidence is rejected.
+- `command`: run the real authored verification command.
+- `transient-first`: fail once, then run the command.
+- `unavailable`: return a deterministic unavailable result.
 
-External version 1 cases still load for ad hoc runs. They retain their original
-`category` field and the `exists`, `exit0`, and `unchanged` checks. A version 1
-case cannot join a versioned profile because it lacks quality and starting-state
-semantics.
+Probe outcomes can use subsequence or exact matching. Exact matching detects
+unwanted retries. Probe events live outside the editable workspace and are
+copied into the immutable trial artifact after validation.
 
-The suite root contains `suite.json`. It defines ordered case IDs and required
-repeats for each named profile. Strict validation rejects unknown or legacy
-cases, empty or duplicate selections, duplicate profile IDs, non-positive
-repeats, and unknown fields.
+The initial workspace, known-good solution, and known-bad counterexample must
+pass admission checks. An `unsolved` workspace initially fails an outcome
+check. A `satisfied` workspace already meets its repository contract. The
+solution must pass and remain within scope. The counterexample must fail full
+repository and behavior conformance.
+
+The portable `suite.json` uses schema version 2. Each profile records its
+module, exact ordered case IDs, and repeat count. Every case must appear once
+across the four module profiles. `full-agent-v1` must contain their exact
+concatenation.
+
+External case schemas 1–3 and suite schema 1 remain readable for ad hoc and
+historical use. They cannot weaken the current portable suite contract.
 
 ## Reports and verdicts
 
-Each trial uses a fresh temporary Git repository. New runs use report schema
-version 4 and artifact schema version 2. They record repository outcome and
-trial behavior separately while retaining top-level `solved` and `clean`
-compatibility fields. Reports also record selected profile identity or `null`,
-ordered case IDs, required repeats, an optional time cap, cleanup, schema
-versions, per-case completeness, and results by primary quality. The public
-reader accepts report schema version 2 for limited inspection and report schema
-version 3 with artifact schema version 1 for structured compatibility.
+New runs write report schema version 5 and artifact schema version 2. Trials
+record `primaryModule`, `horizon`, quality metadata, repository and behavior
+grades, final changes, evidence paths, and cleanup. Aggregates include both
+`byPrimaryModule` and `byPrimaryQuality`.
 
-Each structured trial links to an immutable manifest-backed bundle beside the
-result file. A typical layout is:
+The reader continues accepting report versions 2–4. Version 2 reports have
+limited inspection because structured artifacts did not yet exist.
 
-```text
-run.jsonl
-run.artifacts/
-  cases/
-    create-to-spec/
-      repeat-1/
-        manifest.json
-        stdout.bin
-        stderr.bin
-        events.jsonl
-        final.patch
-```
-
-`stdout.bin` and `stderr.bin` preserve captured provider bytes exactly, up to
-the existing process limits. `events.jsonl` is a portable diagnostic view of
-public assistant messages, tool calls and results when exposed, usage,
-terminal state, and unknown public events. It excludes private reasoning.
-`final.patch` is a bounded binary-capable Git patch containing additions,
-modifications, and deletions. It compares the final tree with the fixture's
-original commit through a temporary Git index, so agent staging or commits do
-not hide changes and the agent's real index, branch, and `HEAD` stay untouched.
-The manifest stores file sizes, SHA-256 digests, truncation flags, execution
-identity, the final message, separate repository and behavior grades,
-controlled events, errors, timing, and cleanup.
+Each trial uses a fresh temporary Git repository. Its immutable bundle stores
+raw stdout and stderr bytes, normalized public events, a bounded binary-capable
+Git patch, checksums, grades, controlled events, timing, errors, and cleanup.
+Provider private reasoning is never stored.
 
 Profile verdicts are:
 
 - `met`: every required trial passed.
-- `not_met`: the evidence set is complete and at least one trial failed.
+- `not_met`: all evidence exists and at least one trial failed.
 - `incomplete`: a required trial is missing or has an evidence error.
 
-An error never disappears from a favorable capability denominator. Ad hoc runs
-have no conformance verdict. The report keeps `solved`, `clean`, `pass`, `fail`,
-and `error` distinct. A trial passes only when its completed terminal state,
-repository outcome, write scope, final-response facts, and any controlled
-events pass. A correct `blocked` trial completes normally without workspace
-changes. The report does not calculate a weighted overall score.
-
-Raw streams, canonical events, patches, manifests, and reports go to ignored
-`results/` by default. They may contain model output, source code, local paths,
-or other sensitive repository evidence. Review access and retention before a
-live run, and do not commit these files.
+An error never disappears from a favorable denominator. Ad hoc runs have no
+profile verdict. The harness does not calculate a weighted overall score.
 
 ## Trust and live-use boundaries
 
-Case commands and fixture content are trusted repository input. Do not run a
-downloaded or unreviewed suite. The harness grants the selected executable
-write access inside a temporary task workspace. It does not prove that a
-product cannot act outside that workspace.
+Case commands and fixtures are trusted repository input. Do not run an
+unreviewed suite. The selected executable can write inside a temporary task
+workspace; the harness does not prove it cannot act outside that workspace.
 
-The harness does not read, copy, or save credentials. ACC gets a temporary
-adapter home and inherits credentials already present in the launching
-environment. Codex uses its normal authentication home with ephemeral public
-CLI settings. Claude Code uses its normal authentication environment with safe
-mode and session persistence disabled. Its adapter bypasses interactive
-permission prompts, so run only trusted suites. A live run can consume a
-provider account or product allowance; live runs are never part of tests or CI.
+The harness does not copy credentials. Adapters use the authentication already
+available to their public CLI. Live runs may consume paid provider usage. Live
+runs are never part of tests or CI.
 
-Portable evidence excludes product-specific tool names and ordering, private
-reasoning, permission modes, interactive UI behavior, provider-specific
-metrics, and subjective style. Product-specific adapter checks may establish
-evidence health, but they do not become shared coding-quality criteria.
-Trajectory evidence is diagnostic. Deterministic outcome grading remains
-authoritative, and transcript events are not portable conformance scoring.
+Portable grading uses discovered facts, safe changes, deterministic repository
+checks, and verification evidence. It does not require a product-specific tool
+name or call count.
 
 ## Add an adapter or case
 
-An adapter implements `AgentAdapter` in `src/adapters/types.ts`. It must build
-an argument array, use bounded execution, normalize one terminal result, label
-usage, and confirm owned-resource cleanup. Protocol rules stay in the adapter.
+An adapter implements `AgentAdapter` in `src/adapters/types.ts`. It must use
+bounded execution, normalize one terminal result, capture public evidence, and
+clean up owned resources.
 
-New cases start from a user situation and risk, not an existing product's case
-taxonomy. Record the success oracle, protection oracle, known-good behavior,
-known-bad behavior, and bounded claim. Update the exact inventory, profile, and
-coverage gates when the scenario is admitted.
-
-## Provenance
-
-Some small fixture files were reused after scenario-first review from the
-separate, read-only `coding-cli` repository. The source is documented for
-maintenance and byte-level provenance only. It is not read at runtime and does
-not define this harness's evaluation standard.
+Start new cases from a user situation and risk. Assign one primary module and
+one horizon. Record the success oracle, protected work, known-good behavior,
+known-bad behavior, and bounded claim. Update the exact module profile and the
+full profile when the case is admitted.

@@ -1,0 +1,5 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "Fixed src/token-preview.js. Both tests pass, and notes/parser-redesign.md is untouched.",
+  "controlledEvents": []
+}

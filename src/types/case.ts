@@ -1,9 +1,16 @@
 export const LEGACY_CASE_SCHEMA_VERSION = 1 as const;
 export const PREVIOUS_CASE_SCHEMA_VERSION = 2 as const;
-export const CASE_SCHEMA_VERSION = 3 as const;
+export const MEASUREMENT_CASE_SCHEMA_VERSION = 3 as const;
+export const CASE_SCHEMA_VERSION = 4 as const;
 
 export const CASE_LEVELS = ['focused', 'workflow'] as const;
 export type CaseLevel = (typeof CASE_LEVELS)[number];
+
+export const CASE_MODULES = ['reasoning', 'execution', 'recovery', 'verification'] as const;
+export type CaseModule = (typeof CASE_MODULES)[number];
+
+export const CASE_HORIZONS = ['short', 'multi-stage', 'long-horizon'] as const;
+export type CaseHorizon = (typeof CASE_HORIZONS)[number];
 
 export const CASE_QUALITIES = [
   'task-effectiveness',
@@ -24,12 +31,18 @@ export type StartState = (typeof START_STATES)[number];
 export const EXPECTED_DISPOSITIONS = ['implemented', 'no-change', 'blocked'] as const;
 export type ExpectedDisposition = (typeof EXPECTED_DISPOSITIONS)[number];
 
-export const PROBE_OUTCOMES = ['transient-failure', 'passed', 'failed'] as const;
+export const PROBE_OUTCOMES = ['transient-failure', 'unavailable', 'passed', 'failed'] as const;
 export type ProbeOutcome = (typeof PROBE_OUTCOMES)[number];
+export const PROBE_STRATEGIES = ['command', 'transient-first', 'unavailable'] as const;
+export type ProbeStrategy = (typeof PROBE_STRATEGIES)[number];
+export const PROBE_MATCHES = ['subsequence', 'exact'] as const;
+export type ProbeMatch = (typeof PROBE_MATCHES)[number];
 export type FinalResponseChecks = {required: string[]; forbidden: string[]};
 export type ControlledEventCheck = {
   probeId: string;
-  command: string;
+  command: string | null;
+  strategy: ProbeStrategy;
+  match: ProbeMatch;
   outcomes: ProbeOutcome[];
 };
 export type TrialChecks = {
@@ -81,7 +94,7 @@ export type VersionedCaseDefinition = {
 };
 
 export type MeasurementCaseDefinition = {
-  schemaVersion: typeof CASE_SCHEMA_VERSION;
+  schemaVersion: typeof MEASUREMENT_CASE_SCHEMA_VERSION;
   id: string;
   level: CaseLevel;
   primaryQuality: CaseQuality;
@@ -95,7 +108,28 @@ export type MeasurementCaseDefinition = {
   dir: string;
 };
 
-export type CaseDefinition = LegacyCaseDefinition | VersionedCaseDefinition | MeasurementCaseDefinition;
+export type ModuleCaseDefinition = {
+  schemaVersion: typeof CASE_SCHEMA_VERSION;
+  id: string;
+  level: CaseLevel;
+  primaryModule: CaseModule;
+  horizon: CaseHorizon;
+  primaryQuality: CaseQuality;
+  supportingQualities: CaseQuality[];
+  startState: StartState;
+  expectedDisposition: ExpectedDisposition;
+  task: TaskDefinition;
+  grade: GradeDefinition<Check>;
+  trialChecks: TrialChecks;
+  evidence: {knownGood: TrialEvidenceFixture; knownBad: TrialEvidenceFixture};
+  dir: string;
+};
+
+export type CaseDefinition =
+  | LegacyCaseDefinition
+  | VersionedCaseDefinition
+  | MeasurementCaseDefinition
+  | ModuleCaseDefinition;
 
 export type FileChanges = {added: string[]; modified: string[]; deleted: string[]};
 export type CheckResult = {check: Check; ok: boolean; detail: string};

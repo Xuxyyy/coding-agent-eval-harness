@@ -1,0 +1,5 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "Updated plugin and app and added a compatibility shim. npm test and verify-migration passed.",
+  "controlledEvents": []
+}

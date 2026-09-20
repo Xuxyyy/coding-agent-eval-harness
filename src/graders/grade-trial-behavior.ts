@@ -38,13 +38,14 @@ export function gradeTrialBehavior(
   repositoryGrade: GradeResult,
 ): BehaviorGrade {
   const disposition = expectedDisposition(definition);
+  const normalizedFinalMessage = finalMessage?.replace(/\s+/gu, ' ').trim() ?? null;
   const dispositionPassed = terminalStatus === 'completed' && (
     disposition === null || disposition === 'implemented' || noRepositoryChanges(repositoryGrade)
   );
-  const finalChecks = definition.schemaVersion === 3
+  const finalChecks = definition.schemaVersion === 3 || definition.schemaVersion === 4
     ? [
       ...definition.trialChecks.finalResponse.required.map((pattern) => {
-        const ok = finalMessage !== null && new RegExp(pattern, 'iu').test(finalMessage);
+        const ok = normalizedFinalMessage !== null && new RegExp(pattern, 'iu').test(normalizedFinalMessage);
         return {
           kind: 'required' as const,
           pattern,
@@ -55,7 +56,7 @@ export function gradeTrialBehavior(
         };
       }),
       ...definition.trialChecks.finalResponse.forbidden.map((pattern) => {
-        const ok = finalMessage === null || !new RegExp(pattern, 'iu').test(finalMessage);
+        const ok = normalizedFinalMessage === null || !new RegExp(pattern, 'iu').test(normalizedFinalMessage);
         return {
           kind: 'forbidden' as const,
           pattern,
@@ -67,19 +68,21 @@ export function gradeTrialBehavior(
       }),
     ]
     : [];
-  const controlledChecks = definition.schemaVersion === 3
+  const controlledChecks = definition.schemaVersion === 3 || definition.schemaVersion === 4
     ? definition.trialChecks.controlledEvents.map((check) => {
       const actual = events
         .filter((event) => event.probeId === check.probeId)
         .map((event) => event.outcome);
-      const ok = orderedSubsequence(actual, check.outcomes);
+      const ok = check.match === 'exact'
+        ? JSON.stringify(actual) === JSON.stringify(check.outcomes)
+        : orderedSubsequence(actual, check.outcomes);
       return {
         probeId: check.probeId,
         expectedOutcomes: check.outcomes,
         ok,
         detail: ok
-          ? `${check.probeId} contains ordered outcomes ${check.outcomes.join(' -> ')}`
-          : `${check.probeId} outcomes ${actual.join(' -> ') || '(none)'} do not contain ${check.outcomes.join(' -> ')}`,
+          ? `${check.probeId} ${check.match === 'exact' ? 'matches' : 'contains'} outcomes ${check.outcomes.join(' -> ')}`
+          : `${check.probeId} outcomes ${actual.join(' -> ') || '(none)'} do not ${check.match === 'exact' ? 'exactly match' : 'contain'} ${check.outcomes.join(' -> ')}`,
       };
     })
     : [];

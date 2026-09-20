@@ -1,7 +1,9 @@
 import type {AdapterTerminalStatus, Usage} from './adapter.js';
 import type {
   BehaviorGrade,
+  CaseHorizon,
   CaseLevel,
+  CaseModule,
   CaseQuality,
   CheckResult,
   ExpectedDisposition,
@@ -18,6 +20,8 @@ export type TrialRecord = {
   adapter: string;
   requestedModel: string | null;
   level: CaseLevel | null;
+  primaryModule: CaseModule | null;
+  horizon: CaseHorizon | null;
   primaryQuality: CaseQuality | null;
   supportingQualities: CaseQuality[];
   startState: StartState | null;

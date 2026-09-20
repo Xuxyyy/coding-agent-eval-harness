@@ -24,6 +24,7 @@ export function selectCases(options: SelectionOptions): SelectedCases {
       profile: {
         suiteId: suite.id,
         profileId: selectedProfile.id,
+        module: selectedProfile.module,
         caseIds: [...selectedProfile.caseIds],
         repeats: selectedProfile.repeats,
       },

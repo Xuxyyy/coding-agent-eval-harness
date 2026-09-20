@@ -23,31 +23,35 @@ const solvingAdapter: AgentAdapter = {
     return 'fake 1.0';
   },
   async run(invocation) {
+    let finalMessage: string;
     if (existsSync(join(invocation.cwd, 'README.md'))) {
       writeFixtureFile(
         invocation.cwd,
         'src/slugify.js',
         "export function slugify(text){return text.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')}\n",
       );
+      finalMessage = 'Implemented slugify.';
     } else if (existsSync(join(invocation.cwd, 'src/sum.js'))) {
       writeFixtureFile(
         invocation.cwd,
         'src/sum.js',
         "export function sum(numbers){return numbers.reduce((total,value)=>total+value,0)}\n",
       );
+      finalMessage = 'Fixed src/sum.js.';
     } else {
       writeFixtureFile(
         invocation.cwd,
         'src/token-preview.js',
         "export function tokenPreview(value){if(value.length<=8)return value;return `${value.slice(0,4)}...${value.slice(-4)}`}\n",
       );
+      finalMessage = 'Fixed token-preview and preserved the draft unchanged.';
     }
     return {
       terminalStatus: 'completed',
-      finalMessage: 'done',
+      finalMessage,
       usage: {inputTokens: 1, outputTokens: 2, totalTokens: 3},
       events: [
-        {sequence: 1, kind: 'assistant_message', providerEventType: 'text_delta', text: 'done'},
+        {sequence: 1, kind: 'assistant_message', providerEventType: 'text_delta', text: finalMessage},
         {sequence: 2, kind: 'terminal', providerEventType: 'result', status: 'completed', message: null},
       ],
       publicSessionId: null,
@@ -87,7 +91,7 @@ test('runEvaluation persists repeats, aggregation, metadata, raw output, and cle
     assert.equal(result.exitCode, 0);
     assert.equal(result.trials.length, 2);
     assert.equal(result.report.agentExecutableVersion, 'fake 1.0');
-    assert.equal(result.report.schemaVersion, 4);
+    assert.equal(result.report.schemaVersion, 5);
     assert.equal(result.report.artifactSchemaVersion, 2);
     assert.equal(result.report.requestedModel, 'exact-model');
     assert.equal(result.report.aggregate.passes.count, 2);
@@ -251,7 +255,7 @@ test('runEvaluation rejects profile overrides and unknown profiles', async () =>
     adapter: solvingAdapter,
   };
   await assert.rejects(
-    runEvaluation({...base, profile: 'smoke-v1', repeats: 1}),
+    runEvaluation({...base, profile: 'reasoning-v1', repeats: 1}),
     /cannot be combined/,
   );
   await assert.rejects(

@@ -5,5 +5,4 @@ results/
 .env
 .env.*
 !.env.example
-plans/
 *.tgz

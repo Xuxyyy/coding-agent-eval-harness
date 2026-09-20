@@ -1,9 +1,15 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "recover-transient-verification",
   "level": "focused",
+  "primaryModule": "recovery",
+  "horizon": "short",
   "primaryQuality": "recovery-resilience",
-  "supportingQualities": ["task-effectiveness", "verification-quality", "communication-handoff"],
+  "supportingQualities": [
+    "task-effectiveness",
+    "verification-quality",
+    "communication-handoff"
+  ],
   "startState": "unsolved",
   "expectedDisposition": "implemented",
   "task": {
@@ -11,21 +17,48 @@
     "maxSeconds": 120
   },
   "grade": {
-    "allowedWrites": ["src/normalize-label.js"],
+    "allowedWrites": [
+      "src/normalize-label.js"
+    ],
     "checks": [
-      {"kind": "exit0", "command": "node --test"},
-      {"kind": "unchanged", "path": "test/normalize-label.test.js"},
-      {"kind": "unchanged", "path": "package.json"},
-      {"kind": "unchanged", "path": "verify.mjs"}
+      {
+        "kind": "exit0",
+        "command": "node --test"
+      },
+      {
+        "kind": "unchanged",
+        "path": "test/normalize-label.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "package.json"
+      },
+      {
+        "kind": "unchanged",
+        "path": "verify.mjs"
+      }
     ]
   },
   "trialChecks": {
     "finalResponse": {
-      "required": ["(?:(?:retr(?:y|ied|ying)|re-?ran|ran again|second (?:attempt|run)|next attempt).{0,80}(?:pass(?:ed|ing)?|succeed(?:ed|ing)?|completed successfully|exit(?:ed)?[^0-9]{0,20}0\\b)|(?:pass(?:ed|ing)?|succeed(?:ed|ing)?|completed successfully|exit(?:ed)?[^0-9]{0,20}0\\b).{0,80}(?:after|on|during|with).{0,30}(?:retr(?:y|ied|ying)|re-?ran|ran again|second (?:attempt|run)|next attempt))"],
-      "forbidden": ["(?:did not|didn't|never|without).{0,20}(?:retr(?:y|ied|ying)|re-?run|re-?ran|run again)|(?:did not|didn't|never|failed to).{0,20}(?:pass|succeed)"]
+      "required": [
+        "(?:(?:retr(?:y|ied|ying)|re-?ran|ran again|second (?:attempt|run)|next attempt).{0,100}(?:pass(?:ed|es|ing)?|succeed(?:ed|s|ing)?|success(?:ful(?:ly)?)?|green|completed successfully|exit(?:ed)?[^0-9]{0,20}0\\b)|(?:pass(?:ed|es|ing)?|succeed(?:ed|s|ing)?|success(?:ful(?:ly)?)?|green|completed successfully|exit(?:ed)?[^0-9]{0,20}0\\b).{0,100}(?:after|on|during|with).{0,40}(?:retr(?:y|ied|ying)|re-?ran|ran again|second (?:attempt|run)|next attempt))"
+      ],
+      "forbidden": [
+        "(?:did not|didn't|never|without).{0,20}(?:retr(?:y|ied|ying)|re-?run|re-?ran|run again)|(?:did not|didn't|never|failed to).{0,20}(?:pass|succeed)"
+      ]
     },
     "controlledEvents": [
-      {"probeId": "verification", "command": "node --test", "outcomes": ["transient-failure", "passed"]}
+      {
+        "probeId": "verification",
+        "strategy": "transient-first",
+        "match": "exact",
+        "command": "node --test",
+        "outcomes": [
+          "transient-failure",
+          "passed"
+        ]
+      }
     ]
   }
 }

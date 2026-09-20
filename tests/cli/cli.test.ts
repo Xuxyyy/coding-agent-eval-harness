@@ -63,7 +63,7 @@ test('CLI parses every supported argument', () => {
 test('CLI parses profiles and rejects identity-changing overrides', () => {
   assert.deepEqual(
     parseCliArgs([
-      'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite', '--profile', 'smoke-v1',
+      'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite', '--profile', 'reasoning-v1',
     ]),
     {
       help: false,
@@ -71,7 +71,7 @@ test('CLI parses profiles and rejects identity-changing overrides', () => {
         agent: 'acc',
         command: 'fake',
         casesDir: 'suite',
-        profile: 'smoke-v1',
+        profile: 'reasoning-v1',
       },
     },
   );
@@ -79,7 +79,7 @@ test('CLI parses profiles and rejects identity-changing overrides', () => {
     assert.throws(
       () => parseCliArgs([
         'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite',
-        '--profile', 'smoke-v1', ...override,
+        '--profile', 'reasoning-v1', ...override,
       ]),
       /cannot be combined/,
     );
@@ -134,7 +134,7 @@ function runCli(executable: string, output: string, mode?: string, profile?: str
   );
 }
 
-test('built CLI runs all twenty cases end to end and writes a parseable ad hoc report', () => {
+test('built CLI runs all twenty-five cases end to end and writes a parseable ad hoc report', () => {
   const root = mkdtempSync(join(tmpdir(), 'agent-eval-cli-'));
   try {
     const executable = writeFakeAcc(root);
@@ -142,19 +142,19 @@ test('built CLI runs all twenty cases end to end and writes a parseable ad hoc r
     const run = runCli(executable, output);
     assert.equal(run.status, 0, `${run.stderr}\n${run.stdout}`);
     assert.match(run.stdout, /terminal\s+elapsed_ms\s+total_tokens/);
-    assert.match(run.stdout, /running 1\/20  accurate-change-handoff \(repeat 1\)/);
+    assert.match(run.stdout, /running 1\/25  accurate-change-handoff \(repeat 1\)/);
     assert.match(run.stdout, /create-to-spec\s+1\s+pass/);
     assert.match(run.stdout, /create-to-spec\s+1\s+pass\s+true\s+true\s+completed\s+\d+\s+6/);
-    assert.match(run.stdout, /report\s+completed\s+passes 20\/20/);
+    assert.match(run.stdout, /report\s+completed\s+passes 25\/25/);
     const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
-    assert.equal(records.length, 21);
-    assert.deepEqual(records.slice(0, 20).map((record) => record.status), Array(20).fill('pass'));
-    assert.equal(records[20].schemaVersion, 4);
-    assert.equal(records[20].artifactSchemaVersion, 2);
-    assert.equal(records[20].profile, null);
-    assert.equal(records[20].profileVerdict, null);
-    assert.equal(records[20].suiteContentHash.length, 64);
-    assert.deepEqual(records[20].cleanup, {
+    assert.equal(records.length, 26);
+    assert.deepEqual(records.slice(0, 25).map((record) => record.status), Array(25).fill('pass'));
+    assert.equal(records[25].schemaVersion, 5);
+    assert.equal(records[25].artifactSchemaVersion, 2);
+    assert.equal(records[25].profile, null);
+    assert.equal(records[25].profileVerdict, null);
+    assert.equal(records[25].suiteContentHash.length, 64);
+    assert.deepEqual(records[25].cleanup, {
       workspaces: true,
       adapterHomes: true,
       processes: true,
@@ -215,24 +215,23 @@ test('built CLI runs then inspects structured evidence, including after bundle r
   }
 });
 
-test('built CLI runs measurement-v1 with separate repository and behavior grades', () => {
+test('built CLI runs recovery-v1 with separate repository and behavior grades', () => {
   const root = mkdtempSync(join(tmpdir(), 'agent-eval-cli-measurement-'));
   try {
     const executable = writeFakeAcc(root);
-    const output = join(root, 'measurement.jsonl');
-    const run = runCli(executable, output, undefined, 'measurement-v1');
+    const output = join(root, 'recovery.jsonl');
+    const run = runCli(executable, output, undefined, 'recovery-v1');
     assert.equal(run.status, 0, `${run.stderr}\n${run.stdout}`);
     const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
     const trials = records.slice(0, -1);
     const report = records.at(-1);
     assert.deepEqual(trials.map((trial) => trial.caseId), [
       'recover-transient-verification',
-      'accurate-change-handoff',
-      'block-on-missing-contract',
-      'remove-deprecated-module',
+      'fallback-after-tool-failure',
+      'resume-partial-migration',
     ]);
     assert.deepEqual(trials.map((trial) => trial.expectedDisposition), [
-      'implemented', 'implemented', 'blocked', 'implemented',
+      'implemented', 'implemented', 'implemented',
     ]);
     assert.equal(trials.every((trial) => trial.repositoryPassed && trial.behaviorPassed), true);
     assert.equal(report.profileVerdict, 'met');
@@ -240,11 +239,15 @@ test('built CLI runs measurement-v1 with separate repository and behavior grades
     assert.deepEqual(recovery.behaviorGrade.controlledEvents.events.map((event: {outcome: string}) => event.outcome), [
       'transient-failure', 'passed',
     ]);
-    const inspected = inspectCli(output, 'remove-deprecated-module');
+    const fallback = trials[1];
+    assert.deepEqual(fallback.behaviorGrade.controlledEvents.events.map((event: {outcome: string}) => event.outcome), [
+      'unavailable', 'passed',
+    ]);
+    const inspected = inspectCli(output, 'resume-partial-migration');
     assert.equal(inspected.status, 0, inspected.stderr);
     assert.match(inspected.stdout, /Repository outcome/);
     assert.match(inspected.stdout, /Trial behavior/);
-    assert.match(inspected.stdout, /deleted: src\/deprecated-format\.js/);
+    assert.match(inspected.stdout, /packages\/plugin\/src\/activate\.js/);
   } finally {
     rmSync(root, {recursive: true, force: true});
   }
@@ -317,16 +320,16 @@ test('built CLI preserves profile order and distinguishes every verdict', () => 
     ];
     for (const outcome of outcomes) {
       const output = join(root, `${outcome.verdict}.jsonl`);
-      const run = runCli(executable, output, outcome.mode, 'smoke-v1');
+      const run = runCli(executable, output, outcome.mode, 'recovery-v1');
       assert.equal(run.status, outcome.status, run.stderr);
-      assert.match(run.stdout, new RegExp(`profile\\s+smoke-v1\\s+verdict ${outcome.verdict}`));
+      assert.match(run.stdout, new RegExp(`profile\\s+recovery-v1\\s+verdict ${outcome.verdict}`));
       const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
       const report = records.at(-1);
       assert.deepEqual(
         records.slice(0, -1).map((record) => record.caseId),
-        ['create-to-spec', 'already-correct-no-op', 'preserve-user-wip'],
+        ['recover-transient-verification', 'fallback-after-tool-failure', 'resume-partial-migration'],
       );
-      assert.equal(report.profile.profileId, 'smoke-v1');
+      assert.equal(report.profile.profileId, 'recovery-v1');
       assert.equal(report.profileVerdict, outcome.verdict);
       assert.deepEqual(report.selectedCaseIds, report.profile.caseIds);
       assert.deepEqual(
@@ -339,36 +342,41 @@ test('built CLI preserves profile order and distinguishes every verdict', () => 
   }
 });
 
-test('built CLI runs workflow-v1 in reviewed order and exposes inspect evidence', () => {
+test('built CLI runs reasoning-v1 in reviewed order and exposes module evidence', () => {
   const root = mkdtempSync(join(tmpdir(), 'agent-eval-cli-workflow-'));
   try {
     const executable = writeFakeAcc(root);
-    const output = join(root, 'workflow.jsonl');
-    const run = runCli(executable, output, undefined, 'workflow-v1');
+    const output = join(root, 'reasoning.jsonl');
+    const run = runCli(executable, output, undefined, 'reasoning-v1');
     assert.equal(run.status, 0, run.stderr);
-    assert.match(run.stdout, /profile\s+workflow-v1\s+verdict met/);
+    assert.match(run.stdout, /profile\s+reasoning-v1\s+verdict met/);
     const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
     const trials = records.slice(0, -1);
     const report = records.at(-1);
     assert.deepEqual(trials.map((record) => record.caseId), [
+      'already-correct-no-op',
+      'block-on-missing-contract',
+      'diagnose-root-cause',
+      'repair-stale-test-contract',
+      'trace-actual-runtime-path',
       'repair-config-flow',
-      'preserve-header-contract',
+      'migrate-cross-package-api',
     ]);
-    assert.deepEqual(trials.map((record) => record.status), ['pass', 'pass']);
-    assert.equal(report.profile.profileId, 'workflow-v1');
+    assert.equal(trials.every((record) => record.status === 'pass'), true);
+    assert.equal(report.profile.profileId, 'reasoning-v1');
+    assert.equal(report.profile.module, 'reasoning');
     assert.equal(report.profile.repeats, 1);
     assert.equal(report.profileVerdict, 'met');
-    assert.deepEqual(
-      report.aggregate.byPrimaryQuality.map(
-        (quality: {quality: string; total: number}) => [quality.quality, quality.total],
-      ),
-      [['repository-understanding', 1], ['change-discipline', 1]],
-    );
+    assert.deepEqual(report.aggregate.byPrimaryModule, [
+      {module: 'reasoning', total: 7, scored: 7, errors: 0, passes: {count: 7, of: 7, rate: 1}},
+    ]);
     assert.deepEqual(report.cleanup, {workspaces: true, adapterHomes: true, processes: true, controls: true});
 
     const inspected = inspectCli(output, 'repair-config-flow');
     assert.equal(inspected.status, 0, inspected.stderr);
     assert.match(inspected.stdout, /status: pass/);
+    assert.match(inspected.stdout, /module: reasoning/);
+    assert.match(inspected.stdout, /horizon: multi-stage/);
     assert.match(inspected.stdout, /src\/server-options\.js/);
     assert.match(inspected.stdout, /test\/server-options-regression\.test\.js/);
   } finally {

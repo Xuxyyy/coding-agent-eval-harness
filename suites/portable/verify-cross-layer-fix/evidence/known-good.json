@@ -1,0 +1,8 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "node verify-focused.mjs passed, then node verify-full.mjs passed.",
+  "controlledEvents": [
+    {"sequence": 1, "probeId": "focused-verification", "outcome": "passed"},
+    {"sequence": 2, "probeId": "full-verification", "outcome": "passed"}
+  ]
+}

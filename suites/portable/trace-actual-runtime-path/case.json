@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 4,
+  "id": "trace-actual-runtime-path",
+  "level": "workflow",
+  "primaryModule": "reasoning",
+  "horizon": "multi-stage",
+  "primaryQuality": "repository-understanding",
+  "supportingQualities": ["task-effectiveness", "change-discipline", "verification-quality"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "The public `label-tool` CLI prints labels with underscores instead of hyphens. Trace the actual runtime path, fix the active implementation, and verify with `npm test`. A legacy formatter remains for compatibility and must not be changed. Report the active file you changed.",
+    "maxSeconds": 180
+  },
+  "grade": {
+    "allowedWrites": ["src/format-label.js"],
+    "checks": [
+      {"kind": "exit0", "command": "npm test"},
+      {"kind": "unchanged", "path": "src/legacy/format-label.js"},
+      {"kind": "unchanged", "path": "src/commands/format.js"},
+      {"kind": "unchanged", "path": "bin/label-tool.js"},
+      {"kind": "unchanged", "path": "verify-cli.mjs"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {
+    "finalResponse": {
+      "required": ["src/format-label\\.js", "npm test"],
+      "forbidden": []
+    },
+    "controlledEvents": []
+  }
+}

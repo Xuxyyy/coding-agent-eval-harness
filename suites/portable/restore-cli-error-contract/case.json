@@ -1,9 +1,15 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "restore-cli-error-contract",
   "level": "workflow",
+  "primaryModule": "verification",
+  "horizon": "multi-stage",
   "primaryQuality": "verification-quality",
-  "supportingQualities": ["task-effectiveness", "repository-understanding", "change-discipline"],
+  "supportingQualities": [
+    "task-effectiveness",
+    "repository-understanding",
+    "change-discipline"
+  ],
   "startState": "unsolved",
   "expectedDisposition": "implemented",
   "task": {
@@ -11,20 +17,65 @@
     "maxSeconds": 180
   },
   "grade": {
-    "allowedWrites": ["src/cli.js", "bin/tool.js", "test/cli-contract.test.js"],
+    "allowedWrites": [
+      "src/cli.js",
+      "bin/tool.js",
+      "test/cli-contract.test.js"
+    ],
     "checks": [
-      {"kind": "exit0", "command": "npm test"},
-      {"kind": "exit0", "command": "node verify-cli.mjs"},
-      {"kind": "exists", "path": "test/cli-contract.test.js"},
-      {"kind": "unchanged", "path": "src/parse-count.js"},
-      {"kind": "unchanged", "path": "src/run.js"},
-      {"kind": "unchanged", "path": "src/errors.js"},
-      {"kind": "unchanged", "path": "test/parse-count.test.js"},
-      {"kind": "unchanged", "path": "test/run.test.js"},
-      {"kind": "unchanged", "path": "verify-cli.mjs"},
-      {"kind": "unchanged", "path": "README.md"},
-      {"kind": "unchanged", "path": "package.json"}
+      {
+        "kind": "exit0",
+        "command": "npm test"
+      },
+      {
+        "kind": "exit0",
+        "command": "node verify-cli.mjs"
+      },
+      {
+        "kind": "exists",
+        "path": "test/cli-contract.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/parse-count.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/run.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/errors.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "test/parse-count.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "test/run.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "verify-cli.mjs"
+      },
+      {
+        "kind": "unchanged",
+        "path": "README.md"
+      },
+      {
+        "kind": "unchanged",
+        "path": "package.json"
+      }
     ]
   },
-  "trialChecks": {"finalResponse": {"required": ["test/cli-contract\\.test\\.js"], "forbidden": []}, "controlledEvents": []}
+  "trialChecks": {
+    "finalResponse": {
+      "required": [
+        "test/cli-contract\\.test\\.js|process(?:-| )level.{0,30}(?:regression|test|coverage)|(?:integration|end-to-end|e2e).{0,30}(?:regression|test|coverage)"
+      ],
+      "forbidden": []
+    },
+    "controlledEvents": []
+  }
 }

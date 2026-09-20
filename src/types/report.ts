@@ -1,9 +1,10 @@
 import {TRIAL_ARTIFACT_SCHEMA_VERSION} from './artifact.js';
-import type {CaseQuality} from './case.js';
+import type {CaseModule, CaseQuality} from './case.js';
 
 export const LEGACY_REPORT_SCHEMA_VERSION = 2 as const;
 export const STRUCTURED_REPORT_SCHEMA_VERSION = 3 as const;
-export const REPORT_SCHEMA_VERSION = 4 as const;
+export const MEASUREMENT_REPORT_SCHEMA_VERSION = 4 as const;
+export const REPORT_SCHEMA_VERSION = 5 as const;
 
 export type Rate = {count: number; of: number; rate: number | null};
 export type CaseAggregate = {
@@ -22,6 +23,13 @@ export type QualityAggregate = {
   errors: number;
   passes: Rate;
 };
+export type ModuleAggregate = {
+  module: CaseModule;
+  total: number;
+  scored: number;
+  errors: number;
+  passes: Rate;
+};
 export type Aggregate = {
   total: number;
   scored: number;
@@ -32,6 +40,7 @@ export type Aggregate = {
   repositoryPassed: Rate;
   behaviorPassed: Rate;
   byCase: CaseAggregate[];
+  byPrimaryModule: ModuleAggregate[];
   byPrimaryQuality: QualityAggregate[];
 };
 
@@ -40,6 +49,7 @@ export type ProfileIdentity = {
   profileId: string;
   caseIds: string[];
   repeats: number;
+  module: CaseModule | 'all' | null;
 };
 export type ProfileVerdict = 'met' | 'not_met' | 'incomplete';
 

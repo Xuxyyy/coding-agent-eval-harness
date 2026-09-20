@@ -1,0 +1,6 @@
+{
+  "name": "trace-actual-runtime-path-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test && node verify-cli.mjs"}
+}

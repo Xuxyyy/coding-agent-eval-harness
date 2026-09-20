@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 4,
+  "id": "fallback-after-tool-failure",
+  "level": "focused",
+  "primaryModule": "recovery",
+  "horizon": "multi-stage",
+  "primaryQuality": "recovery-resilience",
+  "supportingQualities": ["verification-quality", "task-effectiveness", "communication-handoff"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "Fix `normalizeCode` so the tests pass. Verify first with `node verify-native.mjs`. If that verifier reports that it is unavailable, do not retry it; use the documented fallback `node verify-portable.mjs`. Report which verifier succeeded. Do not change tests or verification launchers.",
+    "maxSeconds": 180
+  },
+  "grade": {
+    "allowedWrites": ["src/normalize-code.js"],
+    "checks": [
+      {"kind": "exit0", "command": "node --test"},
+      {"kind": "unchanged", "path": "test/normalize-code.test.js"},
+      {"kind": "unchanged", "path": "verify-native.mjs"},
+      {"kind": "unchanged", "path": "verify-portable.mjs"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {
+    "finalResponse": {
+      "required": ["(?:native.{0,40}(?:unavailable|not available|could not run|couldn't run|unsupported)|(?:unavailable|not available|could not run|couldn't run|unsupported).{0,40}native)", "(?:portable.{0,50}(?:pass|succeed|success(?:ful(?:ly)?)?|green|completed)|(?:pass|succeed|success(?:ful(?:ly)?)?|green|completed).{0,50}portable)"],
+      "forbidden": []
+    },
+    "controlledEvents": [
+      {"probeId": "native-verification", "strategy": "unavailable", "match": "exact", "outcomes": ["unavailable"]},
+      {"probeId": "portable-verification", "strategy": "command", "match": "exact", "command": "node --test", "outcomes": ["passed"]}
+    ]
+  }
+}

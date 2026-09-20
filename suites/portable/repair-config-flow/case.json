@@ -1,28 +1,82 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
   "id": "repair-config-flow",
   "level": "workflow",
+  "primaryModule": "reasoning",
+  "horizon": "multi-stage",
   "primaryQuality": "repository-understanding",
-  "supportingQualities": ["task-effectiveness", "change-discipline", "verification-quality"],
+  "supportingQualities": [
+    "task-effectiveness",
+    "change-discipline",
+    "verification-quality"
+  ],
   "startState": "unsolved",
+  "expectedDisposition": "implemented",
   "task": {
     "prompt": "A server created from layered configuration is ignoring resolved project and environment values. Repair the shared configuration flow so server options consume the repository's resolver without changing the documented configuration or server-option contracts. Add a focused regression test for the reported flow. Keep existing tests, documentation, configuration modules, and package metadata unchanged, and run the test suite when done.",
     "maxSeconds": 180
   },
   "grade": {
-    "allowedWrites": ["src/server-options.js", "test/server-options-regression.test.js"],
+    "allowedWrites": [
+      "src/server-options.js",
+      "test/server-options-regression.test.js"
+    ],
     "checks": [
-      {"kind": "exit0", "command": "npm test"},
-      {"kind": "exit0", "command": "node verify-config-flow.mjs"},
-      {"kind": "exists", "path": "test/server-options-regression.test.js"},
-      {"kind": "contains", "path": "test/server-options-regression.test.js", "text": "buildServerOptions"},
-      {"kind": "unchanged", "path": "README.md"},
-      {"kind": "unchanged", "path": "package.json"},
-      {"kind": "unchanged", "path": "src/default-config.js"},
-      {"kind": "unchanged", "path": "src/resolve-config.js"},
-      {"kind": "unchanged", "path": "test/resolve-config.test.js"},
-      {"kind": "unchanged", "path": "test/server-options.test.js"},
-      {"kind": "unchanged", "path": "verify-config-flow.mjs"}
+      {
+        "kind": "exit0",
+        "command": "npm test"
+      },
+      {
+        "kind": "exit0",
+        "command": "node verify-config-flow.mjs"
+      },
+      {
+        "kind": "exists",
+        "path": "test/server-options-regression.test.js"
+      },
+      {
+        "kind": "contains",
+        "path": "test/server-options-regression.test.js",
+        "text": "buildServerOptions"
+      },
+      {
+        "kind": "unchanged",
+        "path": "README.md"
+      },
+      {
+        "kind": "unchanged",
+        "path": "package.json"
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/default-config.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/resolve-config.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "test/resolve-config.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "test/server-options.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "verify-config-flow.mjs"
+      }
     ]
+  },
+  "trialChecks": {
+    "finalResponse": {
+      "required": [
+        "server-options",
+        "(?:npm test|test)"
+      ],
+      "forbidden": []
+    },
+    "controlledEvents": []
   }
 }

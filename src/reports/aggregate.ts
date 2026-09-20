@@ -1,4 +1,4 @@
-import type {Aggregate, CaseQuality, Rate, TrialRecord} from '../types/index.js';
+import type {Aggregate, CaseModule, CaseQuality, Rate, TrialRecord} from '../types/index.js';
 import {repeatsComplete, type RepeatRequirement} from './shared.js';
 
 function rate(count: number, of: number): Rate {
@@ -24,6 +24,11 @@ export function aggregate(
       .map((trial) => trial.primaryQuality)
       .filter((quality): quality is CaseQuality => quality !== null),
   );
+  const modules = orderedUnique(
+    trials
+      .map((trial) => trial.primaryModule)
+      .filter((module): module is CaseModule => module !== null),
+  );
   return {
     total: trials.length,
     scored: scored.length,
@@ -46,6 +51,17 @@ export function aggregate(
         scored: kept.length,
         errors: selected.length - kept.length,
         passes: kept.filter((trial) => trial.status === 'pass').length,
+      };
+    }),
+    byPrimaryModule: modules.map((module) => {
+      const selected = trials.filter((trial) => trial.primaryModule === module);
+      const kept = selected.filter((trial) => trial.status !== 'error');
+      return {
+        module,
+        total: selected.length,
+        scored: kept.length,
+        errors: selected.length - kept.length,
+        passes: rate(kept.filter((trial) => trial.status === 'pass').length, kept.length),
       };
     }),
     byPrimaryQuality: qualities.map((quality) => {

@@ -58,6 +58,23 @@ const validV3 = {
   },
 };
 
+const validV4 = {
+  ...validV3,
+  schemaVersion: 4,
+  id: 'sample-v4',
+  primaryModule: 'recovery',
+  horizon: 'multi-stage',
+  trialChecks: {
+    finalResponse: {required: ['fallback'], forbidden: []},
+    controlledEvents: [
+      {
+        probeId: 'verification', strategy: 'unavailable', match: 'exact',
+        outcomes: ['unavailable'],
+      },
+    ],
+  },
+};
+
 test('parseCase accepts the complete neutral schema', () => {
   const parsed = parseCase(valid, 'case.json', '/case');
   assert.equal(parsed.id, 'sample');
@@ -80,6 +97,39 @@ test('parseCase accepts version 3 dispositions and trial checks', () => {
   if (parsed.schemaVersion !== 3) assert.fail('expected version 3');
   assert.equal(parsed.expectedDisposition, 'implemented');
   assert.deepEqual(parsed.trialChecks.controlledEvents[0]?.outcomes, ['transient-failure', 'passed']);
+});
+
+test('parseCase accepts version 4 modules, horizons, and probe strategies', () => {
+  const parsed = parseCase(validV4, 'case.json', '/case');
+  assert.equal(parsed.schemaVersion, 4);
+  if (parsed.schemaVersion !== 4) assert.fail('expected version 4');
+  assert.equal(parsed.primaryModule, 'recovery');
+  assert.equal(parsed.horizon, 'multi-stage');
+  assert.deepEqual(parsed.trialChecks.controlledEvents[0], {
+    probeId: 'verification', command: null, strategy: 'unavailable',
+    match: 'exact', outcomes: ['unavailable'],
+  });
+  assert.throws(
+    () => parseCase({...validV4, primaryModule: 'memory'}, 'case.json', '/case'),
+    /must be one of/,
+  );
+  assert.throws(
+    () => parseCase({...validV4, horizon: 'forever'}, 'case.json', '/case'),
+    /must be one of/,
+  );
+  assert.throws(
+    () => parseCase({
+      ...validV4,
+      trialChecks: {
+        ...validV4.trialChecks,
+        controlledEvents: [{
+          probeId: 'verification', strategy: 'command', match: 'exact',
+          command: 'node --test', outcomes: ['unavailable'],
+        }],
+      },
+    }, 'case.json', '/case'),
+    /command probes may expect only passed or failed/,
+  );
 });
 
 test('version 3 rejects malformed trial facts, probes, and unsupported combinations', () => {

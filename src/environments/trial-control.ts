@@ -13,7 +13,12 @@ import {
 } from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, join} from 'node:path';
-import type {ControlledEvent, MeasurementCaseDefinition, ProbeOutcome} from '../types/index.js';
+import type {
+  ControlledEvent,
+  MeasurementCaseDefinition,
+  ModuleCaseDefinition,
+  ProbeOutcome,
+} from '../types/index.js';
 
 export const CONTROL_PREFIX = 'agent-eval-control-';
 export const CONTROL_EVENT_LIMIT = 100;
@@ -47,7 +52,7 @@ const timer=setInterval(()=>{if(!existsSync(response)){if(Date.now()-started>600
 }
 
 export async function createTrialControl(
-  definition: MeasurementCaseDefinition,
+  definition: MeasurementCaseDefinition | ModuleCaseDefinition,
   workspaceRoot: string,
 ): Promise<TrialControl> {
   if (definition.trialChecks.controlledEvents.length === 0) {
@@ -92,11 +97,16 @@ export async function createTrialControl(
       let outcome: ProbeOutcome;
       let status: number;
       let message: string | undefined;
-      if (count === 0) {
+      if (check.strategy === 'unavailable') {
+        outcome = 'unavailable';
+        status = 69;
+        message = 'controlled verification tool unavailable';
+      } else if (check.strategy === 'transient-first' && count === 0) {
         outcome = 'transient-failure';
         status = 75;
         message = 'controlled transient verification failure';
       } else {
+        if (check.command === null) throw new Error(`probe ${probeId} has no command`);
         const {NODE_TEST_CONTEXT: _nodeTestContext, ...environment} = process.env;
         const run = spawnSync(check.command, {
           cwd: workspaceRoot,
@@ -154,7 +164,7 @@ export async function createTrialControl(
           }
           if (event.sequence !== index + 1) throw new Error(`control event sequence must be contiguous at ${index + 1}`);
           if (!checks.has(String(event.probeId))) throw new Error(`control event ${index + 1} has unknown probe ID`);
-          if (!['transient-failure', 'passed', 'failed'].includes(String(event.outcome))) {
+          if (!['transient-failure', 'unavailable', 'passed', 'failed'].includes(String(event.outcome))) {
             throw new Error(`control event ${index + 1} has invalid outcome`);
           }
           return {

@@ -1,0 +1,5 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "Finished the plugin and app callers. npm test and node verify-migration.mjs passed.",
+  "controlledEvents": []
+}

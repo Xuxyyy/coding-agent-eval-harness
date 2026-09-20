@@ -1,22 +1,42 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
   "id": "create-to-spec",
   "level": "focused",
+  "primaryModule": "execution",
+  "horizon": "short",
   "primaryQuality": "task-effectiveness",
-  "supportingQualities": ["repository-understanding", "change-discipline"],
+  "supportingQualities": [
+    "repository-understanding",
+    "change-discipline"
+  ],
   "startState": "unsolved",
+  "expectedDisposition": "implemented",
   "task": {
     "prompt": "Create the module that README.md describes.",
     "maxSeconds": 120
   },
   "grade": {
-    "allowedWrites": ["src/slugify.js"],
+    "allowedWrites": [
+      "src/slugify.js"
+    ],
     "checks": [
-      {"kind": "exists", "path": "src/slugify.js"},
+      {
+        "kind": "exists",
+        "path": "src/slugify.js"
+      },
       {
         "kind": "exit0",
         "command": "node --input-type=module -e \"import {slugify} from './src/slugify.js'; const cases = [['Hello, World!', 'hello-world'], ['  Trim  Me  ', 'trim-me'], ['a--b', 'a-b'], ['Node 22 Rocks', 'node-22-rocks']]; for (const [input, want] of cases) { const got = slugify(input); if (got !== want) { console.error(JSON.stringify(input) + ' gave ' + JSON.stringify(got) + ', wanted ' + JSON.stringify(want)); process.exit(1); } }\""
       }
     ]
+  },
+  "trialChecks": {
+    "finalResponse": {
+      "required": [
+        "slugify"
+      ],
+      "forbidden": []
+    },
+    "controlledEvents": []
   }
 }

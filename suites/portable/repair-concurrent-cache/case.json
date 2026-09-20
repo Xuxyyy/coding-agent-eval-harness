@@ -1,9 +1,15 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "repair-concurrent-cache",
   "level": "workflow",
+  "primaryModule": "execution",
+  "horizon": "multi-stage",
   "primaryQuality": "task-effectiveness",
-  "supportingQualities": ["repository-understanding", "verification-quality", "recovery-resilience"],
+  "supportingQualities": [
+    "repository-understanding",
+    "verification-quality",
+    "recovery-resilience"
+  ],
   "startState": "unsolved",
   "expectedDisposition": "implemented",
   "task": {
@@ -11,22 +17,73 @@
     "maxSeconds": 180
   },
   "grade": {
-    "allowedWrites": ["src/resource-cache.js", "src/inflight.js", "test/concurrent-cache.test.js"],
+    "allowedWrites": [
+      "src/resource-cache.js",
+      "src/inflight.js",
+      "test/concurrent-cache.test.js"
+    ],
     "checks": [
-      {"kind": "exit0", "command": "npm test"},
-      {"kind": "exit0", "command": "node verify-cache.mjs"},
-      {"kind": "exists", "path": "src/inflight.js"},
-      {"kind": "exists", "path": "test/concurrent-cache.test.js"},
-      {"kind": "unchanged", "path": "src/index.js"},
-      {"kind": "unchanged", "path": "src/cache-key.js"},
-      {"kind": "unchanged", "path": "src/load-resource.js"},
-      {"kind": "unchanged", "path": "test/basic-cache.test.js"},
-      {"kind": "unchanged", "path": "verify-cache.mjs"},
-      {"kind": "unchanged", "path": "docs/contract.md"},
-      {"kind": "unchanged", "path": "fixtures/data.js"},
-      {"kind": "unchanged", "path": "README.md"},
-      {"kind": "unchanged", "path": "package.json"}
+      {
+        "kind": "exit0",
+        "command": "npm test"
+      },
+      {
+        "kind": "exit0",
+        "command": "node verify-cache.mjs"
+      },
+      {
+        "kind": "exists",
+        "path": "src/inflight.js"
+      },
+      {
+        "kind": "exists",
+        "path": "test/concurrent-cache.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/index.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/cache-key.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/load-resource.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "test/basic-cache.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "verify-cache.mjs"
+      },
+      {
+        "kind": "unchanged",
+        "path": "docs/contract.md"
+      },
+      {
+        "kind": "unchanged",
+        "path": "fixtures/data.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "README.md"
+      },
+      {
+        "kind": "unchanged",
+        "path": "package.json"
+      }
     ]
   },
-  "trialChecks": {"finalResponse": {"required": ["test/concurrent-cache\\.test\\.js"], "forbidden": []}, "controlledEvents": []}
+  "trialChecks": {
+    "finalResponse": {
+      "required": [
+        "test/concurrent-cache\\.test\\.js|(?:focused|concurren\\w*).{0,40}(?:regression|test|coverage)|(?:regression|test|coverage).{0,40}(?:focused|concurren\\w*)"
+      ],
+      "forbidden": []
+    },
+    "controlledEvents": []
+  }
 }

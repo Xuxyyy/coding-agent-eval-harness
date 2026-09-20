@@ -3,6 +3,5 @@ dist/**/*.test.d.ts
 dist/**/fixtures/
 .test-dist/
 results/
-plans/
 .env
 .env.*

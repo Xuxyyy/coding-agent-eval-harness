@@ -25,6 +25,30 @@ function definition() {
   return parsed;
 }
 
+function unavailableDefinition() {
+  const parsed = parseCase({
+    schemaVersion: 4,
+    id: 'unavailable-control-case',
+    level: 'focused',
+    primaryModule: 'recovery',
+    horizon: 'multi-stage',
+    primaryQuality: 'recovery-resilience',
+    supportingQualities: [],
+    startState: 'unsolved',
+    expectedDisposition: 'implemented',
+    task: {prompt: 'Use the fallback.', maxSeconds: 10},
+    grade: {allowedWrites: [], checks: [{kind: 'exists', path: 'package.json'}]},
+    trialChecks: {
+      finalResponse: {required: ['fallback'], forbidden: []},
+      controlledEvents: [{
+        probeId: 'native', strategy: 'unavailable', match: 'exact', outcomes: ['unavailable'],
+      }],
+    },
+  }, 'case.json', '/case');
+  if (parsed.schemaVersion !== 4) assert.fail('expected version 4');
+  return parsed;
+}
+
 test('trial controls isolate state, fail once, pass later, and clean up', async () => {
   const first = await createTrialControl(definition(), process.cwd());
   const second = await createTrialControl(definition(), process.cwd());
@@ -57,6 +81,21 @@ test('trial controls reject malformed and forged records', async () => {
     assert.throws(() => control.readEvents(), /does not match harness-owned events/);
     writeFileSync(log, 'not-json\n');
     assert.throws(() => control.readEvents(), /invalid control event JSONL/);
+  } finally {
+    assert.equal(await control.cleanup(), true);
+  }
+});
+
+test('trial controls expose deterministic unavailable probes', async () => {
+  const control = await createTrialControl(unavailableDefinition(), process.cwd());
+  try {
+    const helper = control.env.AGENT_EVAL_PROBE_NATIVE!;
+    const first = await runProcess({command: helper, args: [], cwd: process.cwd(), timeoutMs: 2_000});
+    const second = await runProcess({command: helper, args: [], cwd: process.cwd(), timeoutMs: 2_000});
+    assert.equal(first.exitCode, 69);
+    assert.match(first.stderr, /unavailable/);
+    assert.equal(second.exitCode, 69);
+    assert.deepEqual(control.readEvents().map((event) => event.outcome), ['unavailable', 'unavailable']);
   } finally {
     assert.equal(await control.cleanup(), true);
   }

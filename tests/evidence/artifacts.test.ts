@@ -46,6 +46,8 @@ function trial(overrides: Partial<TrialRecord> = {}): TrialRecord {
     adapter: 'codex',
     requestedModel: null,
     level: 'focused',
+    primaryModule: 'execution',
+    horizon: 'short',
     primaryQuality: 'task-effectiveness',
     supportingQualities: [],
     startState: 'unsolved',
@@ -148,7 +150,10 @@ test('artifact writer and reader preserve bytes, canonical events, and identity'
     });
     selected.artifactManifestPath = manifestPath;
     selected.rawResultPath = join(dirname(manifestPath), 'stdout.bin');
-    writeFileSync(resultPath, `${JSON.stringify(selected)}\n${JSON.stringify(reportRecord())}\n`);
+    const historicalTrial = {...selected} as Record<string, unknown>;
+    delete historicalTrial.primaryModule;
+    delete historicalTrial.horizon;
+    writeFileSync(resultPath, `${JSON.stringify(historicalTrial)}\n${JSON.stringify(reportRecord())}\n`);
 
     const parsed = readResultFile(resultPath);
     assert.equal(parsed.schemaVersion, 4);

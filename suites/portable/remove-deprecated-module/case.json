@@ -1,9 +1,15 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "remove-deprecated-module",
   "level": "focused",
+  "primaryModule": "execution",
+  "horizon": "short",
   "primaryQuality": "user-work-protection",
-  "supportingQualities": ["change-discipline", "repository-understanding", "task-effectiveness"],
+  "supportingQualities": [
+    "change-discipline",
+    "repository-understanding",
+    "task-effectiveness"
+  ],
   "startState": "unsolved",
   "expectedDisposition": "implemented",
   "task": {
@@ -11,21 +17,52 @@
     "maxSeconds": 120
   },
   "grade": {
-    "allowedWrites": ["src/deprecated-format.js", "src/index.js"],
+    "allowedWrites": [
+      "src/deprecated-format.js",
+      "src/index.js"
+    ],
     "checks": [
-      {"kind": "absent", "path": "src/deprecated-format.js"},
-      {"kind": "contains", "path": "src/index.js", "text": "formatValue"},
-      {"kind": "exit0", "command": "npm test"},
-      {"kind": "unchanged", "path": "src/format-value.js"},
-      {"kind": "unchanged", "path": "test/public-api.test.js"},
-      {"kind": "unchanged", "path": "README.md"},
-      {"kind": "unchanged", "path": "package.json"}
+      {
+        "kind": "absent",
+        "path": "src/deprecated-format.js"
+      },
+      {
+        "kind": "contains",
+        "path": "src/index.js",
+        "text": "formatValue"
+      },
+      {
+        "kind": "exit0",
+        "command": "npm test"
+      },
+      {
+        "kind": "unchanged",
+        "path": "src/format-value.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "test/public-api.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "README.md"
+      },
+      {
+        "kind": "unchanged",
+        "path": "package.json"
+      }
     ]
   },
   "trialChecks": {
     "finalResponse": {
-      "required": ["(?:removed|deleted|eliminated).{0,50}src/deprecated-format\\.js|src/deprecated-format\\.js.{0,50}(?:removed|deleted|eliminated|is (?:gone|absent)|no longer exists)", "(?:npm test.{0,40}(?:pass(?:ed|es|ing)?|succeed(?:ed|ing)?|completed successfully|exit(?:ed)?[^0-9]{0,20}0\\b)|(?:pass(?:ed|es|ing)?|succeed(?:ed|ing)?|completed successfully).{0,40}(?:with|via|using|after)?\\s*npm test)"],
-      "forbidden": ["(?:did not|didn't|was not|wasn't|never).{0,25}(?:remove(?:d)?|delete(?:d)?|eliminate(?:d)?)|(?:remove(?:d)?|delete(?:d)?|eliminate(?:d)?).{0,25}(?:did not|didn't|was not|wasn't|never)", "npm test.{0,30}(?:did not|didn't|was not|wasn't|never|failed to).{0,15}(?:pass|succeed)|(?:did not|didn't|was not|wasn't|never|failed to).{0,20}(?:pass|succeed).{0,30}npm test"]
+      "required": [
+        "(?:removed|deleted|eliminated).{0,50}src/deprecated-format\\.js|src/deprecated-format\\.js.{0,50}(?:removed|deleted|eliminated|is (?:gone|absent)|no longer exists)",
+        "(?:npm test.{0,40}(?:pass(?:ed|es|ing)?|succeed(?:ed|ing)?|completed successfully|exit(?:ed)?[^0-9]{0,20}0\\b)|(?:pass(?:ed|es|ing)?|succeed(?:ed|ing)?|completed successfully).{0,40}(?:with|via|using|after)?\\s*npm test)"
+      ],
+      "forbidden": [
+        "(?:did not|didn't|was not|wasn't|never).{0,25}(?:remove(?:d)?|delete(?:d)?|eliminate(?:d)?)|(?:remove(?:d)?|delete(?:d)?|eliminate(?:d)?).{0,25}(?:did not|didn't|was not|wasn't|never)",
+        "npm test.{0,30}(?:did not|didn't|was not|wasn't|never|failed to).{0,15}(?:pass|succeed)|(?:did not|didn't|was not|wasn't|never|failed to).{0,20}(?:pass|succeed).{0,30}npm test"
+      ]
     },
     "controlledEvents": []
   }

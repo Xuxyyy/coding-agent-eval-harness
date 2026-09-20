@@ -1,32 +1,70 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
   "id": "add-regression-coverage",
   "level": "focused",
+  "primaryModule": "verification",
+  "horizon": "short",
   "primaryQuality": "verification-quality",
-  "supportingQualities": ["task-effectiveness", "change-discipline"],
+  "supportingQualities": [
+    "task-effectiveness",
+    "change-discipline"
+  ],
   "startState": "unsolved",
+  "expectedDisposition": "implemented",
   "task": {
     "prompt": "Bug report: `parsePort('8080oops')` returns 8080, but malformed port text must return null. A valid port string contains only ASCII digits in the original input; do not trim or accept surrounding whitespace. Fix the implementation and add a regression test that uses the exact reported input `8080oops`. Keep the existing tests and run the test suite when done.",
     "maxSeconds": 120
   },
   "grade": {
-    "allowedWrites": ["src/parse-port.js", "test/parse-port-regression.test.js"],
+    "allowedWrites": [
+      "src/parse-port.js",
+      "test/parse-port-regression.test.js"
+    ],
     "checks": [
-      {"kind": "exit0", "command": "node --test"},
+      {
+        "kind": "exit0",
+        "command": "node --test"
+      },
       {
         "kind": "exit0",
         "command": "node --input-type=module -e \"import {parsePort} from './src/parse-port.js'; const cases = [['8080oops', null], ['80.5', null], [' 80', null], ['80 ', null], ['8080', 8080], ['1', 1], ['65535', 65535], ['0', null], ['65536', null]]; for (const [input, expected] of cases) { const actual = parsePort(input); if (actual !== expected) { console.error({input, expected, actual}); process.exit(1); } }\""
       },
-      {"kind": "exit0", "command": "node verify-regression.mjs"},
-      {"kind": "contains", "path": "test/parse-port-regression.test.js", "text": "8080oops"},
+      {
+        "kind": "exit0",
+        "command": "node verify-regression.mjs"
+      },
+      {
+        "kind": "contains",
+        "path": "test/parse-port-regression.test.js",
+        "text": "8080oops"
+      },
       {
         "kind": "matches",
         "path": "test/parse-port-regression.test.js",
         "pattern": "assert\\.(?:equal|strictEqual)\\(parsePort\\(['\\\"]8080oops['\\\"]\\),\\s*null\\)"
       },
-      {"kind": "unchanged", "path": "test/parse-port.test.js"},
-      {"kind": "unchanged", "path": "verify-regression.mjs"},
-      {"kind": "unchanged", "path": "package.json"}
+      {
+        "kind": "unchanged",
+        "path": "test/parse-port.test.js"
+      },
+      {
+        "kind": "unchanged",
+        "path": "verify-regression.mjs"
+      },
+      {
+        "kind": "unchanged",
+        "path": "package.json"
+      }
     ]
+  },
+  "trialChecks": {
+    "finalResponse": {
+      "required": [
+        "regression",
+        "test"
+      ],
+      "forbidden": []
+    },
+    "controlledEvents": []
   }
 }

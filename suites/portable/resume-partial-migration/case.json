@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 4,
+  "id": "resume-partial-migration",
+  "level": "workflow",
+  "primaryModule": "recovery",
+  "horizon": "multi-stage",
+  "primaryQuality": "recovery-resilience",
+  "supportingQualities": ["repository-understanding", "user-work-protection", "change-discipline"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "Continue the interrupted `renderEntry` migration described in MIGRATION.md. Core and CLI work is already complete and must remain byte-identical. Finish the plugin and app callers without adding a compatibility shim, then verify with `npm test` and `node verify-migration.mjs`.",
+    "maxSeconds": 240
+  },
+  "grade": {
+    "allowedWrites": ["packages/plugin/src/activate.js", "packages/app/src/start.js"],
+    "checks": [
+      {"kind": "exit0", "command": "npm test"},
+      {"kind": "exit0", "command": "node verify-migration.mjs"},
+      {"kind": "unchanged", "path": "packages/core/src/render-entry.js"},
+      {"kind": "unchanged", "path": "packages/cli/src/render.js"},
+      {"kind": "unchanged", "path": "MIGRATION.md"},
+      {"kind": "unchanged", "path": "test/migration.test.js"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {
+    "finalResponse": {
+      "required": ["plugin", "app", "npm test", "verify-migration"],
+      "forbidden": []
+    },
+    "controlledEvents": []
+  }
+}

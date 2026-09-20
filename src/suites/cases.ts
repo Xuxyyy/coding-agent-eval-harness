@@ -1,21 +1,29 @@
 import {existsSync, lstatSync, readdirSync, readFileSync, statSync} from 'node:fs';
 import {isAbsolute, join, posix, resolve} from 'node:path';
 import {
+  CASE_HORIZONS,
   CASE_LEVELS,
+  CASE_MODULES,
   CASE_QUALITIES,
   CASE_SCHEMA_VERSION,
   EXPECTED_DISPOSITIONS,
   LEGACY_CASE_SCHEMA_VERSION,
+  LEGACY_SUITE_SCHEMA_VERSION,
+  MEASUREMENT_CASE_SCHEMA_VERSION,
   PREVIOUS_CASE_SCHEMA_VERSION,
+  PROBE_MATCHES,
   PROBE_OUTCOMES,
+  PROBE_STRATEGIES,
   START_STATES,
   SUITE_SCHEMA_VERSION,
   type CaseDefinition,
+  type CaseModule,
   type CaseQuality,
   type Check,
   type LegacyCaseDefinition,
   type LegacyCheck,
   type MeasurementCaseDefinition,
+  type ModuleCaseDefinition,
   type ProbeOutcome,
   type TrialChecks,
   type TrialEvidenceFixture,
@@ -97,7 +105,7 @@ function parseLegacyCheck(where: string, source: Record<string, unknown>): Legac
   throw new CaseError(`${where}.kind`, 'must be exists, exit0, or unchanged');
 }
 
-function parseCheck(where: string, raw: unknown, version: 1 | 2 | 3): Check {
+function parseCheck(where: string, raw: unknown, version: 1 | 2 | 3 | 4): Check {
   const source = record(where, raw);
   if (version === LEGACY_CASE_SCHEMA_VERSION) return parseLegacyCheck(where, source);
   const kind = source.kind;
@@ -144,7 +152,7 @@ function parseTask(source: Record<string, unknown>, where: string) {
   };
 }
 
-function parseGrade(source: Record<string, unknown>, where: string, version: 1 | 2 | 3) {
+function parseGrade(source: Record<string, unknown>, where: string, version: 1 | 2 | 3 | 4) {
   const grade = record(`${where}.grade`, source.grade);
   exactKeys(`${where}.grade`, grade, ['allowedWrites', 'checks']);
   if (!Array.isArray(grade.allowedWrites)) {
@@ -187,17 +195,24 @@ export function parseCase(raw: unknown, where: string, dir: string): CaseDefinit
       dir,
     } as LegacyCaseDefinition;
   }
-  if (source.schemaVersion !== PREVIOUS_CASE_SCHEMA_VERSION && source.schemaVersion !== CASE_SCHEMA_VERSION) {
+  if (
+    source.schemaVersion !== PREVIOUS_CASE_SCHEMA_VERSION &&
+    source.schemaVersion !== MEASUREMENT_CASE_SCHEMA_VERSION &&
+    source.schemaVersion !== CASE_SCHEMA_VERSION
+  ) {
     throw new CaseError(
       `${where}.schemaVersion`,
-      `must be ${LEGACY_CASE_SCHEMA_VERSION}, ${PREVIOUS_CASE_SCHEMA_VERSION}, or ${CASE_SCHEMA_VERSION}`,
+      `must be ${LEGACY_CASE_SCHEMA_VERSION}, ${PREVIOUS_CASE_SCHEMA_VERSION}, ${MEASUREMENT_CASE_SCHEMA_VERSION}, or ${CASE_SCHEMA_VERSION}`,
     );
   }
-  const isMeasurement = source.schemaVersion === CASE_SCHEMA_VERSION;
+  const isMeasurement = source.schemaVersion === MEASUREMENT_CASE_SCHEMA_VERSION ||
+    source.schemaVersion === CASE_SCHEMA_VERSION;
+  const isModule = source.schemaVersion === CASE_SCHEMA_VERSION;
   exactKeys(where, source, [
     'schemaVersion',
     'id',
     'level',
+    ...(isModule ? ['primaryModule', 'horizon'] : []),
     'primaryQuality',
     'supportingQualities',
     'startState',
@@ -239,23 +254,33 @@ export function parseCase(raw: unknown, where: string, dir: string): CaseDefinit
     source.expectedDisposition,
     EXPECTED_DISPOSITIONS,
   );
-  const trialChecks = parseTrialChecks(source.trialChecks, `${where}.trialChecks`);
+  const measurementVersion = source.schemaVersion === MEASUREMENT_CASE_SCHEMA_VERSION
+    ? MEASUREMENT_CASE_SCHEMA_VERSION
+    : CASE_SCHEMA_VERSION;
+  const trialChecks = parseTrialChecks(source.trialChecks, `${where}.trialChecks`, measurementVersion);
   if (expectedDisposition !== 'implemented' && trialChecks.controlledEvents.length > 0) {
     throw new CaseError(
       `${where}.trialChecks.controlledEvents`,
       `controlled events are unsupported for ${expectedDisposition} cases`,
     );
   }
-  return {
+  const measurement = {
     ...common,
-    schemaVersion: CASE_SCHEMA_VERSION,
+    schemaVersion: source.schemaVersion,
     expectedDisposition,
     trialChecks,
     evidence: {
       knownGood: {terminalStatus: 'error', finalMessage: null, controlledEvents: []},
       knownBad: {terminalStatus: 'error', finalMessage: null, controlledEvents: []},
     },
-  } as MeasurementCaseDefinition;
+  };
+  if (!isModule) return measurement as MeasurementCaseDefinition;
+  return {
+    ...measurement,
+    schemaVersion: CASE_SCHEMA_VERSION,
+    primaryModule: controlled(`${where}.primaryModule`, source.primaryModule, CASE_MODULES),
+    horizon: controlled(`${where}.horizon`, source.horizon, CASE_HORIZONS),
+  } as ModuleCaseDefinition;
 }
 
 function regexp(where: string, value: unknown): string {
@@ -268,7 +293,11 @@ function regexp(where: string, value: unknown): string {
   return pattern;
 }
 
-function parseTrialChecks(raw: unknown, where: string): TrialChecks {
+function parseTrialChecks(
+  raw: unknown,
+  where: string,
+  version: typeof MEASUREMENT_CASE_SCHEMA_VERSION | typeof CASE_SCHEMA_VERSION,
+): TrialChecks {
   const source = record(where, raw);
   exactKeys(where, source, ['finalResponse', 'controlledEvents']);
   const finalResponse = record(`${where}.finalResponse`, source.finalResponse);
@@ -289,15 +318,40 @@ function parseTrialChecks(raw: unknown, where: string): TrialChecks {
   const controlledEvents = source.controlledEvents.map((value, index) => {
     const itemWhere = `${where}.controlledEvents[${index}]`;
     const item = record(itemWhere, value);
-    exactKeys(itemWhere, item, ['probeId', 'command', 'outcomes']);
+    if (version === MEASUREMENT_CASE_SCHEMA_VERSION) {
+      exactKeys(itemWhere, item, ['probeId', 'command', 'outcomes']);
+    } else {
+      const strategy = controlled(`${itemWhere}.strategy`, item.strategy, PROBE_STRATEGIES);
+      exactKeys(
+        itemWhere,
+        item,
+        strategy === 'unavailable'
+          ? ['probeId', 'strategy', 'match', 'outcomes']
+          : ['probeId', 'strategy', 'match', 'command', 'outcomes'],
+      );
+    }
     if (!Array.isArray(item.outcomes) || item.outcomes.length === 0) {
       throw new CaseError(`${itemWhere}.outcomes`, 'must be a non-empty array');
     }
+    const strategy = version === MEASUREMENT_CASE_SCHEMA_VERSION
+      ? 'transient-first' as const
+      : controlled(`${itemWhere}.strategy`, item.strategy, PROBE_STRATEGIES);
+    const outcomes = item.outcomes.map((outcome, outcomeIndex) =>
+      controlled(`${itemWhere}.outcomes[${outcomeIndex}]`, outcome, PROBE_OUTCOMES)) as ProbeOutcome[];
+    if (strategy === 'unavailable' && outcomes.some((outcome) => outcome !== 'unavailable')) {
+      throw new CaseError(`${itemWhere}.outcomes`, 'unavailable probes may expect only unavailable outcomes');
+    }
+    if (strategy === 'command' && outcomes.some((outcome) => outcome !== 'passed' && outcome !== 'failed')) {
+      throw new CaseError(`${itemWhere}.outcomes`, 'command probes may expect only passed or failed outcomes');
+    }
     return {
       probeId: identifier(`${itemWhere}.probeId`, item.probeId),
-      command: text(`${itemWhere}.command`, item.command),
-      outcomes: item.outcomes.map((outcome, outcomeIndex) =>
-        controlled(`${itemWhere}.outcomes[${outcomeIndex}]`, outcome, PROBE_OUTCOMES)) as ProbeOutcome[],
+      command: strategy === 'unavailable' ? null : text(`${itemWhere}.command`, item.command),
+      strategy,
+      match: version === MEASUREMENT_CASE_SCHEMA_VERSION
+        ? 'subsequence' as const
+        : controlled(`${itemWhere}.match`, item.match, PROBE_MATCHES),
+      outcomes,
     };
   });
   const probeIds = controlledEvents.map((item) => item.probeId);
@@ -378,7 +432,10 @@ export function loadCase(caseDir: string): CaseDefinition {
     throw new CaseError(absolute, 'case.json must not be a symlink');
   }
   const definition = parseCase(readJson(manifest), manifest, absolute);
-  if (definition.schemaVersion === CASE_SCHEMA_VERSION) {
+  if (
+    definition.schemaVersion === MEASUREMENT_CASE_SCHEMA_VERSION ||
+    definition.schemaVersion === CASE_SCHEMA_VERSION
+  ) {
     requireDirectory(absolute, 'evidence');
     const knownGoodPath = join(absolute, 'evidence', 'known-good.json');
     const knownBadPath = join(absolute, 'evidence', 'known-bad.json');
@@ -420,9 +477,16 @@ export function parseSuite(
 ): SuiteDefinition {
   const source = record(where, raw);
   exactKeys(where, source, ['schemaVersion', 'id', 'profiles']);
-  if (source.schemaVersion !== SUITE_SCHEMA_VERSION) {
-    throw new CaseError(`${where}.schemaVersion`, `must be ${SUITE_SCHEMA_VERSION}`);
+  if (
+    source.schemaVersion !== LEGACY_SUITE_SCHEMA_VERSION &&
+    source.schemaVersion !== SUITE_SCHEMA_VERSION
+  ) {
+    throw new CaseError(
+      `${where}.schemaVersion`,
+      `must be ${LEGACY_SUITE_SCHEMA_VERSION} or ${SUITE_SCHEMA_VERSION}`,
+    );
   }
+  const isModuleSuite = source.schemaVersion === SUITE_SCHEMA_VERSION;
   if (!Array.isArray(source.profiles) || source.profiles.length === 0) {
     throw new CaseError(`${where}.profiles`, 'must be a non-empty array');
   }
@@ -430,7 +494,11 @@ export function parseSuite(
   const profiles = source.profiles.map((rawProfile, index) => {
     const profileWhere = `${where}.profiles[${index}]`;
     const profile = record(profileWhere, rawProfile);
-    exactKeys(profileWhere, profile, ['id', 'caseIds', 'repeats']);
+    exactKeys(
+      profileWhere,
+      profile,
+      isModuleSuite ? ['id', 'module', 'caseIds', 'repeats'] : ['id', 'caseIds', 'repeats'],
+    );
     if (!Array.isArray(profile.caseIds) || profile.caseIds.length === 0) {
       throw new CaseError(`${profileWhere}.caseIds`, 'must be a non-empty array');
     }
@@ -452,8 +520,23 @@ export function parseSuite(
         );
       }
     }
+    const module = isModuleSuite
+      ? controlled(`${profileWhere}.module`, profile.module, [...CASE_MODULES, 'all'] as const)
+      : null;
+    if (module !== null && module !== 'all') {
+      for (const caseId of caseIds) {
+        const definition = byId.get(caseId)!;
+        if (definition.schemaVersion !== CASE_SCHEMA_VERSION || definition.primaryModule !== module) {
+          throw new CaseError(
+            `${profileWhere}.caseIds`,
+            `${caseId} must be a version ${CASE_SCHEMA_VERSION} ${module} case`,
+          );
+        }
+      }
+    }
     return {
       id: identifier(`${profileWhere}.id`, profile.id),
+      module,
       caseIds,
       repeats: positiveInteger(`${profileWhere}.repeats`, profile.repeats),
     };
@@ -462,8 +545,35 @@ export function parseSuite(
   if (new Set(profileIds).size !== profileIds.length) {
     throw new CaseError(`${where}.profiles`, 'must not contain duplicate profile ids');
   }
+  if (isModuleSuite) {
+    const moduleProfiles = CASE_MODULES.map((module) => {
+      const selected = profiles.filter((profile) => profile.module === module);
+      if (selected.length !== 1) {
+        throw new CaseError(`${where}.profiles`, `must contain exactly one ${module} profile`);
+      }
+      return selected[0]!;
+    });
+    const allProfiles = profiles.filter((profile) => profile.module === 'all');
+    if (allProfiles.length !== 1 || profiles.length !== CASE_MODULES.length + 1) {
+      throw new CaseError(`${where}.profiles`, 'must contain four module profiles and one all profile');
+    }
+    if (cases.some((definition) => definition.schemaVersion !== CASE_SCHEMA_VERSION)) {
+      throw new CaseError(`${where}.profiles`, `version ${SUITE_SCHEMA_VERSION} suites require version ${CASE_SCHEMA_VERSION} cases`);
+    }
+    const expectedAll = moduleProfiles.flatMap((profile) => profile.caseIds);
+    if (
+      expectedAll.length !== cases.length ||
+      new Set(expectedAll).size !== cases.length ||
+      cases.some((definition) => !expectedAll.includes(definition.id))
+    ) {
+      throw new CaseError(`${where}.profiles`, 'every case must appear in exactly one module profile');
+    }
+    if (JSON.stringify(allProfiles[0]!.caseIds) !== JSON.stringify(expectedAll)) {
+      throw new CaseError(`${where}.profiles`, 'the all profile must concatenate the four module profiles');
+    }
+  }
   return {
-    schemaVersion: SUITE_SCHEMA_VERSION,
+    schemaVersion: source.schemaVersion,
     id: identifier(`${where}.id`, source.id),
     profiles,
     dir: resolve(dir),

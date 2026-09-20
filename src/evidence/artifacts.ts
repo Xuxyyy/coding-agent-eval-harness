@@ -17,6 +17,7 @@ import {runProcess} from '../environments/process.js';
 import {
   LEGACY_REPORT_SCHEMA_VERSION,
   LEGACY_TRIAL_ARTIFACT_SCHEMA_VERSION,
+  MEASUREMENT_REPORT_SCHEMA_VERSION,
   REPORT_SCHEMA_VERSION,
   STRUCTURED_REPORT_SCHEMA_VERSION,
   TRIAL_ARTIFACT_SCHEMA_VERSION,
@@ -41,6 +42,7 @@ export type ParsedResultFile = {
   schemaVersion:
     | typeof LEGACY_REPORT_SCHEMA_VERSION
     | typeof STRUCTURED_REPORT_SCHEMA_VERSION
+    | typeof MEASUREMENT_REPORT_SCHEMA_VERSION
     | typeof REPORT_SCHEMA_VERSION;
   trials: JsonObject[];
   report: JsonObject;
@@ -151,7 +153,7 @@ function validateControlledEvents(value: unknown, label: string): ControlledEven
     const probeId = string(event.probeId, `${label}[${index}].probeId`);
     const outcome = oneOf(
       event.outcome,
-      ['transient-failure', 'passed', 'failed'] as const,
+      ['transient-failure', 'unavailable', 'passed', 'failed'] as const,
       `${label}[${index}].outcome`,
     );
     return {sequence, probeId, outcome};
@@ -181,7 +183,7 @@ function validateBehaviorGrade(value: unknown, label: string): void {
     array(check.expectedOutcomes, `${label}.controlledEvents.checks[${index}].expectedOutcomes`).forEach(
       (outcome, outcomeIndex) => oneOf(
         outcome,
-        ['transient-failure', 'passed', 'failed'],
+        ['transient-failure', 'unavailable', 'passed', 'failed'],
         `${label}.controlledEvents.checks[${index}].expectedOutcomes[${outcomeIndex}]`,
       ),
     );
@@ -340,7 +342,12 @@ export function writeTrialArtifact(input: WriteTrialArtifactInput): string {
   return relative(dirname(input.resultPath), manifest);
 }
 
-function validateTrialRecord(value: unknown, index: number, measurement: boolean): JsonObject {
+function validateTrialRecord(
+  value: unknown,
+  index: number,
+  measurement: boolean,
+  modules: boolean,
+): JsonObject {
   const trial = object(value, `record ${index}`);
   if (trial.kind !== 'trial') throw new Error(`record ${index} must be a trial`);
   string(trial.caseId, `record ${index}.caseId`);
@@ -348,6 +355,18 @@ function validateTrialRecord(value: unknown, index: number, measurement: boolean
   string(trial.adapter, `record ${index}.adapter`);
   nullableString(trial.requestedModel, `record ${index}.requestedModel`);
   if (trial.level !== null) oneOf(trial.level, ['focused', 'workflow'], `record ${index}.level`);
+  if (modules) {
+    if (trial.primaryModule !== null) {
+      oneOf(
+        trial.primaryModule,
+        ['reasoning', 'execution', 'recovery', 'verification'],
+        `record ${index}.primaryModule`,
+      );
+    }
+    if (trial.horizon !== null) {
+      oneOf(trial.horizon, ['short', 'multi-stage', 'long-horizon'], `record ${index}.horizon`);
+    }
+  }
   if (trial.primaryQuality !== null) string(trial.primaryQuality, `record ${index}.primaryQuality`);
   stringArray(trial.supportingQualities, `record ${index}.supportingQualities`);
   if (trial.startState !== null) oneOf(trial.startState, ['unsolved', 'satisfied'], `record ${index}.startState`);
@@ -403,12 +422,17 @@ export function readResultFile(resultPath: string): ParsedResultFile {
   if (
     schemaVersion !== LEGACY_REPORT_SCHEMA_VERSION &&
     schemaVersion !== STRUCTURED_REPORT_SCHEMA_VERSION &&
+    schemaVersion !== MEASUREMENT_REPORT_SCHEMA_VERSION &&
     schemaVersion !== REPORT_SCHEMA_VERSION
   ) {
     throw new Error(`unsupported report schema version: ${schemaVersion}`);
   }
   const trials = records.slice(0, -1);
-  if (schemaVersion === STRUCTURED_REPORT_SCHEMA_VERSION || schemaVersion === REPORT_SCHEMA_VERSION) {
+  if (
+    schemaVersion === STRUCTURED_REPORT_SCHEMA_VERSION ||
+    schemaVersion === MEASUREMENT_REPORT_SCHEMA_VERSION ||
+    schemaVersion === REPORT_SCHEMA_VERSION
+  ) {
     string(report.requestedAdapter, 'report.requestedAdapter');
     nullableString(report.requestedModel, 'report.requestedModel');
     string(report.agentExecutableVersion, 'report.agentExecutableVersion');
@@ -424,9 +448,9 @@ export function readResultFile(resultPath: string): ParsedResultFile {
     }
     if (report.maxSecondsCap !== null) integer(report.maxSecondsCap, 'report.maxSecondsCap', 1);
     string(report.suiteContentHash, 'report.suiteContentHash');
-    const expectedArtifactVersion = schemaVersion === REPORT_SCHEMA_VERSION
-      ? TRIAL_ARTIFACT_SCHEMA_VERSION
-      : LEGACY_TRIAL_ARTIFACT_SCHEMA_VERSION;
+    const expectedArtifactVersion = schemaVersion === STRUCTURED_REPORT_SCHEMA_VERSION
+      ? LEGACY_TRIAL_ARTIFACT_SCHEMA_VERSION
+      : TRIAL_ARTIFACT_SCHEMA_VERSION;
     if (report.artifactSchemaVersion !== expectedArtifactVersion) {
       throw new Error(`unsupported artifact schema version: ${String(report.artifactSchemaVersion)}`);
     }
@@ -435,7 +459,10 @@ export function readResultFile(resultPath: string): ParsedResultFile {
     for (const [caseId, version] of Object.entries(caseSchemaVersions)) {
       string(caseId, 'report.caseSchemaVersions key');
       const parsedVersion = integer(version, `report.caseSchemaVersions.${caseId}`, 1);
-      if (parsedVersion !== 1 && parsedVersion !== 2 && !(schemaVersion === REPORT_SCHEMA_VERSION && parsedVersion === 3)) {
+      const supported = parsedVersion === 1 || parsedVersion === 2 ||
+        ((schemaVersion === MEASUREMENT_REPORT_SCHEMA_VERSION || schemaVersion === REPORT_SCHEMA_VERSION) && parsedVersion === 3) ||
+        (schemaVersion === REPORT_SCHEMA_VERSION && parsedVersion === 4);
+      if (!supported) {
         throw new Error(`report.caseSchemaVersions.${caseId} must be supported by report schema ${schemaVersion}`);
       }
     }
@@ -445,8 +472,11 @@ export function readResultFile(resultPath: string): ParsedResultFile {
     boolean(cleanup.workspaces, 'report.cleanup.workspaces');
     boolean(cleanup.adapterHomes, 'report.cleanup.adapterHomes');
     boolean(cleanup.processes, 'report.cleanup.processes');
-    if (schemaVersion === REPORT_SCHEMA_VERSION) boolean(cleanup.controls, 'report.cleanup.controls');
-    trials.forEach((trial, index) => validateTrialRecord(trial, index + 1, schemaVersion === REPORT_SCHEMA_VERSION));
+    const measurement = schemaVersion === MEASUREMENT_REPORT_SCHEMA_VERSION ||
+      schemaVersion === REPORT_SCHEMA_VERSION;
+    if (measurement) boolean(cleanup.controls, 'report.cleanup.controls');
+    trials.forEach((trial, index) =>
+      validateTrialRecord(trial, index + 1, measurement, schemaVersion === REPORT_SCHEMA_VERSION));
   } else {
     for (const [index, trialValue] of trials.entries()) {
       const trial = object(trialValue, `record ${index + 1}`);
