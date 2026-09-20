@@ -6,8 +6,8 @@ its public CLI?
 
 It is a standalone Node.js harness. It runs trusted, deterministic fixtures
 through neutral adapters and never imports a tested product's internals. The
-bundled `foundation-v1` profile is a draft foundation. It is not complete
-certification, a leaderboard, or an overall ranking.
+bundled portable suite is a draft foundation. It is not complete certification,
+a leaderboard, or an overall ranking.
 
 ## Evaluation model
 
@@ -27,11 +27,12 @@ Version 2 and 3 cases use nine controlled qualities: `task-effectiveness`,
 cross-cutting and comes from a profile's repeat requirement, not one fixture.
 
 The current 12-case suite contains ten focused cases and two workflow cases.
-It covers all nine controlled qualities as primary evidence. The four-case
-`measurement-v1` profile adds controlled recovery, factual handoff, safe
-blocking, and safe deletion once each. It makes no reliability claim and is
-still an intermediate milestone, not `product-v1`, complete certification, or
-a real-agent baseline. These limits remain visible in
+It covers all nine controlled qualities as primary evidence. Four focused cases
+add controlled recovery, factual handoff, safe blocking, and safe deletion.
+They are included in `focused-v1` and `full-v1`, and remain available through
+the legacy `measurement-v1` profile. The suite makes no reliability claim and
+is still an intermediate milestone, not `product-v1`, complete certification,
+or a real-agent baseline. These limits remain visible in
 [the suite design record](suites/portable/README.md).
 
 ## Requirements and offline gate
@@ -71,31 +72,39 @@ harness first:
 npm run -s eval:smoke:acc
 npm run -s eval:smoke:codex
 npm run -s eval:smoke:claude
-npm run -s eval:foundation:acc
-npm run -s eval:foundation:codex
-npm run -s eval:foundation:claude
+npm run -s eval:focused:acc
+npm run -s eval:focused:codex
+npm run -s eval:focused:claude
 npm run -s eval:workflow:acc
 npm run -s eval:workflow:codex
 npm run -s eval:workflow:claude
-npm run -s eval:measurement:acc
-npm run -s eval:measurement:codex
-npm run -s eval:measurement:claude
+npm run -s eval:full:acc
+npm run -s eval:full:codex
+npm run -s eval:full:claude
 ```
 
 These commands make live provider calls and can consume account credit. The
 ACC shortcuts explicitly use `deepseek-v4-flash`, and the Codex shortcuts use
 `gpt-5.6-luna`. The Claude Code shortcuts use the CLI's configured default
-model. Use `smoke` for a quick three-trial check and `foundation` for the full
-18-trial focused baseline. Use `workflow` for the two repository workflows and
-`measurement` for the four measurement cases. Each workflow and measurement
-case runs once, and those profiles make no reliability claim.
+model. Use `smoke` for a quick check, `focused` for all focused cases,
+`workflow` for both workflow cases, and `full` for all twelve cases. These four
+selection profiles run each case once and make no reliability claim.
 
 The bundled profiles are:
 
 - `smoke-v1`: three cases, one trial each.
-- `foundation-v1`: six cases, three trials each.
+- `focused-v1`: all ten focused cases, one trial each.
 - `workflow-v1`: two workflow cases, one trial each, in reviewed order.
+- `full-v1`: all twelve cases, one trial each.
+
+Legacy profiles retained for reproducibility are:
+
+- `foundation-v1`: six cases, three trials each.
 - `measurement-v1`: four measurement cases, one trial each, in reviewed order.
+
+Legacy profiles have no npm shortcuts. Select `foundation-v1` or
+`measurement-v1` with the `--profile` option in an explicit `agent-eval run`
+command when reproducing an earlier result.
 
 Profile order and repeat counts are part of the versioned contract.
 `--profile` cannot be combined with `--case` or `--repeats`. `--max-seconds`

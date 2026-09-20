@@ -60,6 +60,7 @@
     "dist/adapters/shared.d.ts",
     "dist/adapters/types.js",
     "dist/adapters/types.d.ts",
+    "docs/suite-taxonomy.md",
     "suites/",
     "README.md",
     "LICENSE"
@@ -71,15 +72,15 @@
     "eval:smoke:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile smoke-v1 --model deepseek-v4-flash",
     "eval:smoke:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile smoke-v1 --model gpt-5.6-luna",
     "eval:smoke:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile smoke-v1",
-    "eval:foundation:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile foundation-v1 --model deepseek-v4-flash",
-    "eval:foundation:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile foundation-v1 --model gpt-5.6-luna",
-    "eval:foundation:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile foundation-v1",
+    "eval:focused:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile focused-v1 --model deepseek-v4-flash",
+    "eval:focused:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile focused-v1 --model gpt-5.6-luna",
+    "eval:focused:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile focused-v1",
     "eval:workflow:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile workflow-v1 --model deepseek-v4-flash",
     "eval:workflow:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile workflow-v1 --model gpt-5.6-luna",
     "eval:workflow:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile workflow-v1",
-    "eval:measurement:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile measurement-v1 --model deepseek-v4-flash",
-    "eval:measurement:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile measurement-v1 --model gpt-5.6-luna",
-    "eval:measurement:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile measurement-v1"
+    "eval:full:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile full-v1 --model deepseek-v4-flash",
+    "eval:full:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile full-v1 --model gpt-5.6-luna",
+    "eval:full:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile full-v1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

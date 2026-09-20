@@ -28,6 +28,7 @@ test('packed installation executes all profiles and preserves verdict distinctio
     const paths = dryRecord.files.map((file) => file.path).sort();
     assert.equal(paths.includes('suites/portable/suite.json'), true);
     assert.equal(paths.includes('suites/portable/README.md'), true);
+    assert.equal(paths.includes('docs/suite-taxonomy.md'), true);
     assert.equal(paths.includes('dist/evidence/artifacts.js'), true);
     assert.equal(paths.includes('dist/evidence/artifacts.d.ts'), true);
     const foundationCaseIds = [
@@ -45,7 +46,9 @@ test('packed installation executes all profiles and preserves verdict distinctio
       'block-on-missing-contract',
       'remove-deprecated-module',
     ];
-    const allCaseIds = [...foundationCaseIds, ...workflowCaseIds, ...measurementCaseIds];
+    const focusedCaseIds = [...foundationCaseIds, ...measurementCaseIds];
+    const fullCaseIds = [...focusedCaseIds, ...workflowCaseIds];
+    const allCaseIds = fullCaseIds;
     for (const caseId of allCaseIds) {
       const prefix = `suites/portable/${caseId}/`;
       assert.equal(paths.includes(`${prefix}case.json`), true, `${caseId}: case manifest missing`);
@@ -161,6 +164,16 @@ test('packed installation executes all profiles and preserves verdict distinctio
     assert.match(inspected.stdout, /Git diff/);
     assert.match(inspected.stdout, /src\/slugify\.js/);
 
+    const focusedPath = join(root, 'focused.jsonl');
+    const focusedRun = runProfile('focused-v1', focusedPath);
+    assert.equal(focusedRun.status, 0, focusedRun.stderr);
+    const focused = report(focusedPath);
+    assert.equal(focused.trials.length, 10);
+    assert.deepEqual(focused.trials.map((trial) => trial.caseId), focusedCaseIds);
+    assert.equal(focused.report.profile.profileId, 'focused-v1');
+    assert.equal(focused.report.profile.repeats, 1);
+    assert.equal(focused.report.profileVerdict, 'met');
+
     const foundationPath = join(root, 'foundation.jsonl');
     const foundationRun = runProfile('foundation-v1', foundationPath);
     assert.equal(foundationRun.status, 0, foundationRun.stderr);
@@ -248,6 +261,16 @@ test('packed installation executes all profiles and preserves verdict distinctio
     assert.equal(deletionInspect.status, 0, deletionInspect.stderr);
     assert.match(deletionInspect.stdout, /deleted: src\/deprecated-format\.js/);
 
+    const fullPath = join(root, 'full.jsonl');
+    const fullRun = runProfile('full-v1', fullPath);
+    assert.equal(fullRun.status, 0, fullRun.stderr);
+    const full = report(fullPath);
+    assert.equal(full.trials.length, 12);
+    assert.deepEqual(full.trials.map((trial) => trial.caseId), fullCaseIds);
+    assert.equal(full.report.profile.profileId, 'full-v1');
+    assert.equal(full.report.profile.repeats, 1);
+    assert.equal(full.report.profileVerdict, 'met');
+
     const failedPath = join(root, 'not-met.jsonl');
     const failedRun = runProfile('smoke-v1', failedPath, 'noedit');
     assert.equal(failedRun.status, 1);
@@ -259,7 +282,16 @@ test('packed installation executes all profiles and preserves verdict distinctio
     const incomplete = report(errorPath);
     assert.equal(incomplete.report.profileVerdict, 'incomplete');
     assert.equal(incomplete.report.aggregate.errors, 3);
-    for (const result of [smoke, foundation, workflow, measurement, report(failedPath), incomplete]) {
+    for (const result of [
+      smoke,
+      focused,
+      foundation,
+      workflow,
+      measurement,
+      full,
+      report(failedPath),
+      incomplete,
+    ]) {
       assert.equal(result.trials.every((trial) =>
         (trial.cleanup as {workspace: boolean; adapterHome: boolean; process: boolean}).workspace &&
         (trial.cleanup as {workspace: boolean; adapterHome: boolean; process: boolean}).adapterHome &&

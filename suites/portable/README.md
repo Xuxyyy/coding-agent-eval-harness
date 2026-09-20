@@ -2,6 +2,8 @@
 
 This suite is an independent, user-centered draft foundation. Its profiles are
 execution contracts, not rankings or claims of complete conformance coverage.
+The classification dimensions and complete case matrix are defined in
+[`docs/suite-taxonomy.md`](../../docs/suite-taxonomy.md).
 
 ## Case admission record
 
@@ -69,16 +71,23 @@ private action sequence.
 | `communication-handoff` | `accurate-change-handoff` |
 
 Reliability is cross-cutting and is exercised only by repeated profile trials;
-`workflow-v1` and `measurement-v1` run each selected case once and make no
-reliability claim. A fake executable proves only the offline contract, not
-product reliability.
+the recommended selection profiles run each selected case once and make no
+reliability claim. The legacy `foundation-v1` profile retains three attempts
+per case. A fake executable proves only the offline contract, not product
+reliability.
 
 ## Profiles
 
 - `smoke-v1` retains its three reviewed cases and one attempt each.
-- `foundation-v1` retains its six reviewed focused cases and three attempts each.
+- `focused-v1` runs all ten focused cases once each.
 - `workflow-v1` runs `repair-config-flow` followed by
   `preserve-header-contract`, once each.
+- `full-v1` runs all ten focused cases followed by both workflow cases, once
+  each.
+
+Legacy profiles remain available for reproducibility:
+
+- `foundation-v1` retains its six reviewed focused cases and three attempts each.
 - `measurement-v1` runs `recover-transient-verification`,
   `accurate-change-handoff`, `block-on-missing-contract`, and
   `remove-deprecated-module`, once each.
