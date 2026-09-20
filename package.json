@@ -76,7 +76,10 @@
     "eval:foundation:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile foundation-v1",
     "eval:workflow:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile workflow-v1 --model deepseek-v4-flash",
     "eval:workflow:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile workflow-v1 --model gpt-5.6-luna",
-    "eval:workflow:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile workflow-v1"
+    "eval:workflow:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile workflow-v1",
+    "eval:measurement:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile measurement-v1 --model deepseek-v4-flash",
+    "eval:measurement:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile measurement-v1 --model gpt-5.6-luna",
+    "eval:measurement:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile measurement-v1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

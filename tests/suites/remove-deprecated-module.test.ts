@@ -21,7 +21,11 @@ test('deletion case admits the narrow removal and known-good handoff', () => {
     assert.deepEqual(repository.changes.modified, ['src/index.js']);
     const good = definition.evidence.knownGood;
     assert.equal(gradeTrialBehavior(definition, good.terminalStatus, good.finalMessage, [], repository).passed, true);
+    const presentTense = 'Deleted src/deprecated-format.js. Verification: npm test passes with 1 test and 0 failures.';
+    assert.equal(gradeTrialBehavior(definition, 'completed', presentTense, [], repository).passed, true);
     assert.equal(gradeTrialBehavior(definition, 'completed', 'Removed old code.', [], repository).passed, false);
+    const noOutcome = 'Deleted src/deprecated-format.js and ran npm test.';
+    assert.equal(gradeTrialBehavior(definition, 'completed', noOutcome, [], repository).passed, false);
   } finally { assert.equal(removeFixture(fixture.root), true); }
 });
 

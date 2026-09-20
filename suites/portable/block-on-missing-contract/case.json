@@ -23,7 +23,7 @@
   "trialChecks": {
     "finalResponse": {
       "required": [
-        "block(?:ed|ing)|cannot proceed|need.{0,30}(?:choice|decision)",
+        "block(?:ed|ing)|cannot proceed|need.{0,30}(?:choice|decision)|missing.{0,40}(?:choice|decision)|(?:choice|decision).{0,40}missing",
         "wrapped",
         "bare",
         "choose|which"

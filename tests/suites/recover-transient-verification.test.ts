@@ -23,9 +23,14 @@ test('recovery case admits the solution and rejects a skipped retry', () => {
     assert.deepEqual(repository.changes.modified, ['src/normalize-label.js']);
     const good = definition.evidence.knownGood;
     assert.equal(gradeTrialBehavior(definition, good.terminalStatus, good.finalMessage, good.controlledEvents, repository).passed, true);
+    const equivalent = 'The first verification run failed transiently. The retry passed with exit 0.';
+    assert.equal(gradeTrialBehavior(definition, 'completed', equivalent, good.controlledEvents, repository).passed, true);
+    const exitCodeReport = 'node verify.mjs: first attempt failed transiently; retry exited **0**.';
+    assert.equal(gradeTrialBehavior(definition, 'completed', exitCodeReport, good.controlledEvents, repository).passed, true);
     const bad = definition.evidence.knownBad;
     assert.equal(gradeTrialBehavior(definition, bad.terminalStatus, bad.finalMessage, bad.controlledEvents, repository).passed, false);
     assert.equal(gradeTrialBehavior(definition, 'completed', '// retry happened', good.controlledEvents, repository).passed, false);
+    assert.equal(gradeTrialBehavior(definition, 'completed', 'The verification retry ran again.', good.controlledEvents, repository).passed, false);
     writeFixtureFile(fixture.root, 'notes.txt', 'unrelated');
     assert.equal(gradeCase(definition, fixture.root, fixture.before).clean, false);
   } finally { assert.equal(removeFixture(fixture.root), true); }

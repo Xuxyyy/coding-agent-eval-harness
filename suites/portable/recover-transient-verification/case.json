@@ -21,7 +21,7 @@
   },
   "trialChecks": {
     "finalResponse": {
-      "required": ["verif(?:y|ication).{0,60}pass(?:ed|ing).{0,40}(?:after|on).{0,20}retr(?:y|ied)"],
+      "required": ["(?:retr(?:y|ied).{0,50}(?:pass(?:ed|ing)|succeed(?:ed|ing)?|exit(?:ed)?[^0-9]{0,20}0\\b)|(?:pass(?:ed|ing)|succeed(?:ed|ing)?).{0,40}(?:after|on).{0,20}retr(?:y|ied))"],
       "forbidden": []
     },
     "controlledEvents": [

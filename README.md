@@ -77,14 +77,18 @@ npm run -s eval:foundation:claude
 npm run -s eval:workflow:acc
 npm run -s eval:workflow:codex
 npm run -s eval:workflow:claude
+npm run -s eval:measurement:acc
+npm run -s eval:measurement:codex
+npm run -s eval:measurement:claude
 ```
 
 These commands make live provider calls and can consume account credit. The
 ACC shortcuts explicitly use `deepseek-v4-flash`, and the Codex shortcuts use
 `gpt-5.6-luna`. The Claude Code shortcuts use the CLI's configured default
 model. Use `smoke` for a quick three-trial check and `foundation` for the full
-18-trial focused baseline. Use `workflow` for the two repository workflows;
-each workflow runs once and the profile makes no reliability claim.
+18-trial focused baseline. Use `workflow` for the two repository workflows and
+`measurement` for the four measurement cases. Each workflow and measurement
+case runs once, and those profiles make no reliability claim.
 
 The bundled profiles are:
 

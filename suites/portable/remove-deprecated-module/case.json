@@ -24,7 +24,7 @@
   },
   "trialChecks": {
     "finalResponse": {
-      "required": ["(?:removed|deleted).{0,40}src/deprecated-format\\.js|src/deprecated-format\\.js.{0,40}(?:removed|deleted)", "npm test.{0,30}pass(?:ed|ing)"],
+      "required": ["(?:removed|deleted).{0,40}src/deprecated-format\\.js|src/deprecated-format\\.js.{0,40}(?:removed|deleted)", "npm test.{0,30}pass(?:ed|es|ing)?"],
       "forbidden": []
     },
     "controlledEvents": []
