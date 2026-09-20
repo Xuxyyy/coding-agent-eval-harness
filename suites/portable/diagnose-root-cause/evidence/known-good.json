@@ -1,0 +1,5 @@
+{
+  "terminalStatus": "completed",
+  "finalMessage": "`npm test` reproduces the failure. In buildCacheKey, decodeURIComponent runs before the route is split, so the encoded slash `%2F` becomes a literal separator and creates an extra segment. No files were changed.",
+  "controlledEvents": []
+}

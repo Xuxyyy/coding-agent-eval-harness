@@ -48,7 +48,23 @@ test('packed installation executes all profiles and preserves verdict distinctio
     ];
     const focusedCaseIds = [...foundationCaseIds, ...measurementCaseIds];
     const fullCaseIds = [...focusedCaseIds, ...workflowCaseIds];
-    const allCaseIds = fullCaseIds;
+    const newFocusedCaseIds = [
+      'diagnose-root-cause',
+      'repair-stale-test-contract',
+      'regenerate-derived-source',
+      'resolve-conflict-preserving-behavior',
+    ];
+    const newWorkflowCaseIds = [
+      'refactor-shared-validation',
+      'migrate-cross-package-api',
+      'repair-concurrent-cache',
+      'restore-cli-error-contract',
+    ];
+    const focusedV2CaseIds = [...focusedCaseIds, ...newFocusedCaseIds];
+    const workflowV2CaseIds = [...workflowCaseIds, ...newWorkflowCaseIds];
+    const fullV2CaseIds = [...focusedV2CaseIds, ...workflowV2CaseIds];
+    const allCaseIds = fullV2CaseIds;
+    const evidenceCaseIds = [...measurementCaseIds, ...newFocusedCaseIds, ...newWorkflowCaseIds];
     for (const caseId of allCaseIds) {
       const prefix = `suites/portable/${caseId}/`;
       assert.equal(paths.includes(`${prefix}case.json`), true, `${caseId}: case manifest missing`);
@@ -59,7 +75,7 @@ test('packed installation executes all profiles and preserves verdict distinctio
           `${caseId}: ${tree} missing`,
         );
       }
-      if (measurementCaseIds.includes(caseId)) {
+      if (evidenceCaseIds.includes(caseId)) {
         assert.equal(paths.includes(`${prefix}evidence/known-good.json`), true);
         assert.equal(paths.includes(`${prefix}evidence/known-bad.json`), true);
       }
@@ -271,6 +287,37 @@ test('packed installation executes all profiles and preserves verdict distinctio
     assert.equal(full.report.profile.repeats, 1);
     assert.equal(full.report.profileVerdict, 'met');
 
+    const fullV2Path = join(root, 'full-v2.jsonl');
+    const fullV2Run = runProfile('full-v2', fullV2Path);
+    assert.equal(fullV2Run.status, 0, fullV2Run.stderr);
+    const fullV2 = report(fullV2Path);
+    assert.equal(fullV2.trials.length, 20);
+    assert.deepEqual(fullV2.trials.map((trial) => trial.caseId), fullV2CaseIds);
+    assert.equal(fullV2.report.profile.profileId, 'full-v2');
+    assert.equal(fullV2.report.profileVerdict, 'met');
+    assert.equal(fullV2.trials.every((trial) => trial.status === 'pass'), true);
+
+    const v2Selections = [
+      {
+        id: 'smoke-v2',
+        caseIds: ['create-to-spec', 'preserve-user-wip', 'diagnose-root-cause', 'migrate-cross-package-api'],
+      },
+      {id: 'focused-v2', caseIds: focusedV2CaseIds},
+      {id: 'workflow-v2', caseIds: workflowV2CaseIds},
+    ];
+    for (const selection of v2Selections) {
+      const output = join(root, `${selection.id}.jsonl`);
+      const run = runProfile(selection.id, output);
+      assert.equal(run.status, 0, run.stderr);
+      const result = report(output);
+      assert.deepEqual(result.trials.map((trial) => trial.caseId), selection.caseIds);
+      assert.equal(result.report.profile.profileId, selection.id);
+      assert.equal(result.report.profileVerdict, 'met');
+      assert.deepEqual(result.report.cleanup, {
+        workspaces: true, adapterHomes: true, processes: true, controls: true,
+      });
+    }
+
     const failedPath = join(root, 'not-met.jsonl');
     const failedRun = runProfile('smoke-v1', failedPath, 'noedit');
     assert.equal(failedRun.status, 1);
@@ -289,6 +336,7 @@ test('packed installation executes all profiles and preserves verdict distinctio
       workflow,
       measurement,
       full,
+      fullV2,
       report(failedPath),
       incomplete,
     ]) {

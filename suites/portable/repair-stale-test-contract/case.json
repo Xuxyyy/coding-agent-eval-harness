@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 3,
+  "id": "repair-stale-test-contract",
+  "level": "focused",
+  "primaryQuality": "judgment-autonomy",
+  "supportingQualities": ["verification-quality", "change-discipline", "repository-understanding"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "Fix the failing user lookup test according to the documented public contract. Change the incorrect side of the disagreement and verify the result. Do not change documentation or package metadata.",
+    "maxSeconds": 120
+  },
+  "grade": {
+    "allowedWrites": ["test/find-user.test.js"],
+    "checks": [
+      {"kind": "exit0", "command": "npm test"},
+      {"kind": "exit0", "command": "node verify-stale-contract.mjs"},
+      {"kind": "exit0", "command": "node --input-type=module -e \"import {findUser} from './src/find-user.js'; if (findUser([], 'missing') !== null) process.exit(1)\""},
+      {"kind": "unchanged", "path": "src/find-user.js"},
+      {"kind": "unchanged", "path": "README.md"},
+      {"kind": "unchanged", "path": "verify-stale-contract.mjs"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {"finalResponse": {"required": ["test/find-user\\.test\\.js"], "forbidden": []}, "controlledEvents": []}
+}

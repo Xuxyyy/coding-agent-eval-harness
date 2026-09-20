@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 3,
+  "id": "regenerate-derived-source",
+  "level": "focused",
+  "primaryQuality": "instruction-adherence",
+  "supportingQualities": ["verification-quality", "change-discipline", "task-effectiveness"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "Add `blue` to the supported colors. Follow the repository instructions for generated code, run the relevant checks, and do not change tests, scripts, documentation, or package metadata.",
+    "maxSeconds": 120
+  },
+  "grade": {
+    "allowedWrites": ["definitions/colors.js", "src/colors.generated.js"],
+    "checks": [
+      {"kind": "exit0", "command": "npm test"},
+      {"kind": "exit0", "command": "node scripts/verify-generated.mjs"},
+      {"kind": "contains", "path": "definitions/colors.js", "text": "'blue'"},
+      {"kind": "contains", "path": "src/colors.generated.js", "text": "\"blue\""},
+      {"kind": "unchanged", "path": "AGENTS.md"},
+      {"kind": "unchanged", "path": "scripts/generate.mjs"},
+      {"kind": "unchanged", "path": "scripts/verify-generated.mjs"},
+      {"kind": "unchanged", "path": "test/colors.test.js"},
+      {"kind": "unchanged", "path": "README.md"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {"finalResponse": {"required": ["definitions/colors\\.js", "src/colors\\.generated\\.js"], "forbidden": []}, "controlledEvents": []}
+}

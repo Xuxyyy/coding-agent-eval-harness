@@ -1,0 +1,1 @@
+{"terminalStatus":"completed","finalMessage":"Migrated formatRecord and all three package callers to the options object; tests and migration verification pass.","controlledEvents":[]}

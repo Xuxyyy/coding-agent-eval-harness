@@ -1,0 +1,1 @@
+{"name":"migrate-cross-package-api-fixture","private":true,"type":"module","scripts":{"test":"node --test"}}

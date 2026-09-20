@@ -1,0 +1,1 @@
+{"name":"restore-cli-error-contract-fixture","private":true,"type":"module","scripts":{"test":"node --test"}}

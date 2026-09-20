@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 3,
+  "id": "refactor-shared-validation",
+  "level": "workflow",
+  "primaryQuality": "change-discipline",
+  "supportingQualities": ["repository-understanding", "task-effectiveness", "verification-quality"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "Refactor the duplicated user validation used by the API and CLI into one shared module. Preserve public exports, validation order, exact messages, and API/CLI result shapes. Do not change existing tests or documentation.",
+    "maxSeconds": 180
+  },
+  "grade": {
+    "allowedWrites": ["src/shared/validate-user.js", "src/api/create-user.js", "src/cli/parse-user.js"],
+    "checks": [
+      {"kind": "exit0", "command": "npm test"},
+      {"kind": "exit0", "command": "node verify-refactor.mjs"},
+      {"kind": "exists", "path": "src/shared/validate-user.js"},
+      {"kind": "unchanged", "path": "src/index.js"},
+      {"kind": "unchanged", "path": "src/rules.js"},
+      {"kind": "unchanged", "path": "src/errors.js"},
+      {"kind": "unchanged", "path": "test/api.test.js"},
+      {"kind": "unchanged", "path": "test/cli.test.js"},
+      {"kind": "unchanged", "path": "verify-refactor.mjs"},
+      {"kind": "unchanged", "path": "README.md"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {"finalResponse": {"required": ["src/shared/validate-user\\.js"], "forbidden": []}, "controlledEvents": []}
+}

@@ -26,13 +26,13 @@ Version 2 and 3 cases use nine controlled qualities: `task-effectiveness`,
 `recovery-resilience`, and `communication-handoff`. Reliability is
 cross-cutting and comes from a profile's repeat requirement, not one fixture.
 
-The current 12-case suite contains ten focused cases and two workflow cases.
-It covers all nine controlled qualities as primary evidence. Four focused cases
-add controlled recovery, factual handoff, safe blocking, and safe deletion.
-They are included in `focused-v1` and `full-v1`, and remain available through
-the legacy `measurement-v1` profile. The suite makes no reliability claim and
+The current 20-case suite contains fourteen focused cases and six workflow
+cases. It covers all nine controlled qualities as primary evidence and adds
+investigation, stale-test repair, generated-source discipline, conflict
+resolution, shared refactoring, cross-package migration, concurrent caching,
+and process-level CLI verification. The suite makes no reliability claim and
 is still an intermediate milestone, not `product-v1`, complete certification,
-or a real-agent baseline. These limits remain visible in
+or a repeated real-agent baseline. These limits remain visible in
 [the suite design record](suites/portable/README.md).
 
 ## Requirements and offline gate
@@ -62,7 +62,7 @@ node dist/cli/index.js run \
   --agent acc \
   --command "$(command -v acc)" \
   --cases suites/portable \
-  --profile smoke-v1
+  --profile smoke-v2
 ```
 
 Use an agent-specific shortcut for a bundled profile. Each shortcut builds the
@@ -87,24 +87,26 @@ These commands make live provider calls and can consume account credit. The
 ACC shortcuts explicitly use `deepseek-v4-flash`, and the Codex shortcuts use
 `gpt-5.6-luna`. The Claude Code shortcuts use the CLI's configured default
 model. Use `smoke` for a quick check, `focused` for all focused cases,
-`workflow` for both workflow cases, and `full` for all twelve cases. These four
+`workflow` for all workflow cases, and `full` for all twenty cases. These four
 selection profiles run each case once and make no reliability claim.
 
 The bundled profiles are:
 
-- `smoke-v1`: three cases, one trial each.
-- `focused-v1`: all ten focused cases, one trial each.
-- `workflow-v1`: two workflow cases, one trial each, in reviewed order.
-- `full-v1`: all twelve cases, one trial each.
+- `smoke-v2`: four representative cases, one trial each.
+- `focused-v2`: all fourteen focused cases, one trial each.
+- `workflow-v2`: all six workflow cases, one trial each, in reviewed order.
+- `full-v2`: all twenty cases, one trial each.
 
 Legacy profiles retained for reproducibility are:
 
+- `smoke-v1`, `focused-v1`, `workflow-v1`, and `full-v1`: the original
+  twelve-case selections.
 - `foundation-v1`: six cases, three trials each.
 - `measurement-v1`: four measurement cases, one trial each, in reviewed order.
 
-Legacy profiles have no npm shortcuts. Select `foundation-v1` or
-`measurement-v1` with the `--profile` option in an explicit `agent-eval run`
-command when reproducing an earlier result.
+Legacy profiles have no npm shortcuts. Select their exact IDs with the
+`--profile` option in an explicit `agent-eval run` command when reproducing an
+earlier result.
 
 Profile order and repeat counts are part of the versioned contract.
 `--profile` cannot be combined with `--case` or `--repeats`. `--max-seconds`

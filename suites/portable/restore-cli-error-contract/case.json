@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 3,
+  "id": "restore-cli-error-contract",
+  "level": "workflow",
+  "primaryQuality": "verification-quality",
+  "supportingQualities": ["task-effectiveness", "repository-understanding", "change-discipline"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "Restore the documented public CLI contract for invalid `--count` values: exit 2, write the diagnostic only to stderr, and keep stdout empty. Add a process-level regression test. Preserve valid-command behavior and do not change existing tests or documentation.",
+    "maxSeconds": 180
+  },
+  "grade": {
+    "allowedWrites": ["src/cli.js", "bin/tool.js", "test/cli-contract.test.js"],
+    "checks": [
+      {"kind": "exit0", "command": "npm test"},
+      {"kind": "exit0", "command": "node verify-cli.mjs"},
+      {"kind": "exists", "path": "test/cli-contract.test.js"},
+      {"kind": "unchanged", "path": "src/parse-count.js"},
+      {"kind": "unchanged", "path": "src/run.js"},
+      {"kind": "unchanged", "path": "src/errors.js"},
+      {"kind": "unchanged", "path": "test/parse-count.test.js"},
+      {"kind": "unchanged", "path": "test/run.test.js"},
+      {"kind": "unchanged", "path": "verify-cli.mjs"},
+      {"kind": "unchanged", "path": "README.md"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {"finalResponse": {"required": ["test/cli-contract\\.test\\.js"], "forbidden": []}, "controlledEvents": []}
+}

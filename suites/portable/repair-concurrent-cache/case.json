@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 3,
+  "id": "repair-concurrent-cache",
+  "level": "workflow",
+  "primaryQuality": "task-effectiveness",
+  "supportingQualities": ["repository-understanding", "verification-quality", "recovery-resilience"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "Repair the resource cache so concurrent requests for the same key share one load, successful values stay cached, and a rejected load does not prevent a later retry. Add focused regression coverage. Do not change existing tests, documentation, fixtures, or package metadata.",
+    "maxSeconds": 180
+  },
+  "grade": {
+    "allowedWrites": ["src/resource-cache.js", "src/inflight.js", "test/concurrent-cache.test.js"],
+    "checks": [
+      {"kind": "exit0", "command": "npm test"},
+      {"kind": "exit0", "command": "node verify-cache.mjs"},
+      {"kind": "exists", "path": "src/inflight.js"},
+      {"kind": "exists", "path": "test/concurrent-cache.test.js"},
+      {"kind": "unchanged", "path": "src/index.js"},
+      {"kind": "unchanged", "path": "src/cache-key.js"},
+      {"kind": "unchanged", "path": "src/load-resource.js"},
+      {"kind": "unchanged", "path": "test/basic-cache.test.js"},
+      {"kind": "unchanged", "path": "verify-cache.mjs"},
+      {"kind": "unchanged", "path": "docs/contract.md"},
+      {"kind": "unchanged", "path": "fixtures/data.js"},
+      {"kind": "unchanged", "path": "README.md"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {"finalResponse": {"required": ["test/concurrent-cache\\.test\\.js"], "forbidden": []}, "controlledEvents": []}
+}

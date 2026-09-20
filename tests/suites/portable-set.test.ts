@@ -16,13 +16,21 @@ const expected = [
   'already-correct-no-op',
   'block-on-missing-contract',
   'create-to-spec',
+  'diagnose-root-cause',
   'fix-failing-test',
   'follow-repository-instructions',
+  'migrate-cross-package-api',
   'preserve-header-contract',
   'preserve-user-wip',
   'recover-transient-verification',
+  'refactor-shared-validation',
+  'regenerate-derived-source',
   'remove-deprecated-module',
+  'repair-concurrent-cache',
   'repair-config-flow',
+  'repair-stale-test-contract',
+  'resolve-conflict-preserving-behavior',
+  'restore-cli-error-contract',
 ];
 
 const matrix: Record<string, {
@@ -91,20 +99,60 @@ const matrix: Record<string, {
     startState: 'unsolved', primaryQuality: 'user-work-protection',
     supportingQualities: ['change-discipline', 'repository-understanding', 'task-effectiveness'],
   },
+  'diagnose-root-cause': {
+    startState: 'satisfied', primaryQuality: 'communication-handoff',
+    supportingQualities: ['repository-understanding', 'judgment-autonomy', 'user-work-protection'],
+  },
+  'repair-stale-test-contract': {
+    startState: 'unsolved', primaryQuality: 'judgment-autonomy',
+    supportingQualities: ['verification-quality', 'change-discipline', 'repository-understanding'],
+  },
+  'regenerate-derived-source': {
+    startState: 'unsolved', primaryQuality: 'instruction-adherence',
+    supportingQualities: ['verification-quality', 'change-discipline', 'task-effectiveness'],
+  },
+  'resolve-conflict-preserving-behavior': {
+    startState: 'unsolved', primaryQuality: 'user-work-protection',
+    supportingQualities: ['repository-understanding', 'change-discipline', 'task-effectiveness'],
+  },
+  'refactor-shared-validation': {
+    startState: 'unsolved', primaryQuality: 'change-discipline',
+    supportingQualities: ['repository-understanding', 'task-effectiveness', 'verification-quality'],
+  },
+  'migrate-cross-package-api': {
+    startState: 'unsolved', primaryQuality: 'repository-understanding',
+    supportingQualities: ['task-effectiveness', 'change-discipline', 'verification-quality'],
+  },
+  'repair-concurrent-cache': {
+    startState: 'unsolved', primaryQuality: 'task-effectiveness',
+    supportingQualities: ['repository-understanding', 'verification-quality', 'recovery-resilience'],
+  },
+  'restore-cli-error-contract': {
+    startState: 'unsolved', primaryQuality: 'verification-quality',
+    supportingQualities: ['task-effectiveness', 'repository-understanding', 'change-discipline'],
+  },
 };
 
-test('portable inventory and profiles match the reviewed twelve-case contract', () => {
+test('portable inventory and profiles match the reviewed twenty-case contract', () => {
   const cases = loadCases(suiteRoot);
   assert.deepEqual(cases.map((item) => item.id), expected);
   assert.equal(cases.filter((item) => item.schemaVersion === 2 && item.level === 'focused').length, 6);
   assert.equal(cases.filter((item) => item.schemaVersion === 2 && item.level === 'workflow').length, 2);
-  assert.equal(cases.filter((item) => item.schemaVersion === 3 && item.level === 'focused').length, 4);
+  assert.equal(cases.filter((item) => item.schemaVersion === 3 && item.level === 'focused').length, 8);
+  assert.equal(cases.filter((item) => item.schemaVersion === 3 && item.level === 'workflow').length, 4);
   for (const definition of cases) {
     assert.notEqual(definition.schemaVersion, 1, `${definition.id}: must use a conformance schema`);
     if (definition.schemaVersion === 1) continue;
     assert.equal(
       definition.level,
-      ['repair-config-flow', 'preserve-header-contract'].includes(definition.id)
+      [
+        'repair-config-flow',
+        'preserve-header-contract',
+        'refactor-shared-validation',
+        'migrate-cross-package-api',
+        'repair-concurrent-cache',
+        'restore-cli-error-contract',
+      ].includes(definition.id)
         ? 'workflow'
         : 'focused',
     );
@@ -168,6 +216,74 @@ test('portable inventory and profiles match the reviewed twelve-case contract', 
         'remove-deprecated-module',
         'repair-config-flow',
         'preserve-header-contract',
+      ],
+      repeats: 1,
+    },
+    {
+      id: 'smoke-v2',
+      caseIds: [
+        'create-to-spec',
+        'preserve-user-wip',
+        'diagnose-root-cause',
+        'migrate-cross-package-api',
+      ],
+      repeats: 1,
+    },
+    {
+      id: 'focused-v2',
+      caseIds: [
+        'create-to-spec',
+        'fix-failing-test',
+        'preserve-user-wip',
+        'already-correct-no-op',
+        'follow-repository-instructions',
+        'add-regression-coverage',
+        'recover-transient-verification',
+        'accurate-change-handoff',
+        'block-on-missing-contract',
+        'remove-deprecated-module',
+        'diagnose-root-cause',
+        'repair-stale-test-contract',
+        'regenerate-derived-source',
+        'resolve-conflict-preserving-behavior',
+      ],
+      repeats: 1,
+    },
+    {
+      id: 'workflow-v2',
+      caseIds: [
+        'repair-config-flow',
+        'preserve-header-contract',
+        'refactor-shared-validation',
+        'migrate-cross-package-api',
+        'repair-concurrent-cache',
+        'restore-cli-error-contract',
+      ],
+      repeats: 1,
+    },
+    {
+      id: 'full-v2',
+      caseIds: [
+        'create-to-spec',
+        'fix-failing-test',
+        'preserve-user-wip',
+        'already-correct-no-op',
+        'follow-repository-instructions',
+        'add-regression-coverage',
+        'recover-transient-verification',
+        'accurate-change-handoff',
+        'block-on-missing-contract',
+        'remove-deprecated-module',
+        'diagnose-root-cause',
+        'repair-stale-test-contract',
+        'regenerate-derived-source',
+        'resolve-conflict-preserving-behavior',
+        'repair-config-flow',
+        'preserve-header-contract',
+        'refactor-shared-validation',
+        'migrate-cross-package-api',
+        'repair-concurrent-cache',
+        'restore-cli-error-contract',
       ],
       repeats: 1,
     },

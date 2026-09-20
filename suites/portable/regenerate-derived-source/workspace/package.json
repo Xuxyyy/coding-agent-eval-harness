@@ -1,0 +1,1 @@
+{"name":"regenerate-derived-source-fixture","private":true,"type":"module","scripts":{"generate":"node scripts/generate.mjs","test":"node --test"}}

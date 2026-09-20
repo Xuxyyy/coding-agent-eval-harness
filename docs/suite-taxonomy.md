@@ -10,7 +10,7 @@ require understanding every grading detail.
 | Suite | The complete catalog of related cases. | `portable` |
 | Case | One evaluation task with its own fixture and oracles. | For example, `fix-failing-test` |
 | Level | The size of repository work in a case. | `focused`, `workflow` |
-| Profile | A fixed, versioned selection of cases and repeat count. | `smoke-v1`, `focused-v1`, `workflow-v1`, `full-v1` |
+| Profile | A fixed, versioned selection of cases and repeat count. | `smoke-v2`, `focused-v2`, `workflow-v2`, `full-v2` |
 | Run | One execution of a profile or explicit case selection against an agent. | A result JSONL file and its artifacts |
 
 The normal selection flow is:
@@ -39,35 +39,43 @@ but users do not need those fields to choose which part of the suite to run.
 
 | Profile | Purpose | Cases | Repeats |
 | --- | --- | --- | ---: |
-| `smoke-v1` | Quick health check | Three representative focused cases | 1 |
-| `focused-v1` | Test all narrow situations | All ten focused cases | 1 |
-| `workflow-v1` | Test connected repository work | Both workflow cases | 1 |
-| `full-v1` | Test the complete portable catalog | All twelve cases | 1 |
+| `smoke-v2` | Quick health check | Four representative focused and workflow cases | 1 |
+| `focused-v2` | Test all narrow situations | All fourteen focused cases | 1 |
+| `workflow-v2` | Test connected repository work | All six workflow cases | 1 |
+| `full-v2` | Test the complete portable catalog | All twenty cases | 1 |
 
 These profiles are fixed run contracts. Their case order and repeat counts do
 not change after release. A later selection change requires a new profile
 version.
 
-`foundation-v1` and `measurement-v1` remain available as legacy profiles so
-earlier results stay reproducible. They are not part of the simplified profile
-choice for new runs.
+The four v1 selection profiles plus `foundation-v1` and `measurement-v1`
+remain available so earlier results stay reproducible. They are not part of
+the simplified profile choice for new runs.
 
-## Current case matrix
+## Current coverage matrix
 
-| Case | Level | Recommended profiles |
-| --- | --- | --- |
-| `create-to-spec` | focused | smoke, focused, full |
-| `fix-failing-test` | focused | focused, full |
-| `preserve-user-wip` | focused | smoke, focused, full |
-| `already-correct-no-op` | focused | smoke, focused, full |
-| `follow-repository-instructions` | focused | focused, full |
-| `add-regression-coverage` | focused | focused, full |
-| `recover-transient-verification` | focused | focused, full |
-| `accurate-change-handoff` | focused | focused, full |
-| `block-on-missing-contract` | focused | focused, full |
-| `remove-deprecated-module` | focused | focused, full |
-| `repair-config-flow` | workflow | workflow, full |
-| `preserve-header-contract` | workflow | workflow, full |
+| Case | Task type | Level / repository shape | Disposition | Change shape | Primary quality | Main counterexample risk |
+| --- | --- | --- | --- | --- | --- | --- |
+| `create-to-spec` | create | focused module | implemented | add one source file | task-effectiveness | incomplete boundary rules |
+| `fix-failing-test` | repair | focused module | implemented | modify source | task-effectiveness | example-only fix or test tampering |
+| `preserve-user-wip` | repair | focused repository with draft | implemented | modify source beside user work | user-work-protection | overwriting unrelated draft work |
+| `already-correct-no-op` | assess | focused documented helper | no-change | no writes | judgment-autonomy | unnecessary rewrite |
+| `follow-repository-instructions` | repair | focused repository rule | implemented | modify one consumer | instruction-adherence | hard-coded behavior that ignores shared policy |
+| `add-regression-coverage` | repair and test | focused parser | implemented | modify source and add test | verification-quality | superficial regression test |
+| `recover-transient-verification` | recover and verify | focused controlled failure | implemented | modify source and retry probe | recovery-resilience | stopping after a retryable failure |
+| `accurate-change-handoff` | repair and report | focused formatter | implemented | modify source and report facts | communication-handoff | false verification claim |
+| `block-on-missing-contract` | assess | focused ambiguous contract | blocked | no writes | judgment-autonomy | guessing an unsupported contract |
+| `remove-deprecated-module` | remove | focused public boundary | implemented | delete module and edit export | user-work-protection | deleting the active replacement |
+| `diagnose-root-cause` | investigate | focused call boundary | no-change | no writes; factual report | communication-handoff | symptom-only diagnosis or unauthorized fix |
+| `repair-stale-test-contract` | repair test | focused documented API | implemented | modify existing test | judgment-autonomy | changing correct production code |
+| `regenerate-derived-source` | generate | focused source/generated pair | implemented | modify definition and generated output | instruction-adherence | hand-editing generated output |
+| `resolve-conflict-preserving-behavior` | resolve conflict | focused conflicted module | implemented | modify conflicted source | user-work-protection | choosing one side and losing behavior |
+| `repair-config-flow` | repair flow | workflow across resolver and consumer | implemented | modify consumer and add test | repository-understanding | special-casing one field |
+| `preserve-header-contract` | repair public contract | workflow across merge and request boundary | implemented | modify implementation and add test | change-discipline | casing, precedence, or mutation drift |
+| `refactor-shared-validation` | refactor | workflow across API and CLI | implemented | add shared module and update consumers | change-discipline | partial extraction or behavior drift |
+| `migrate-cross-package-api` | migrate API | workflow across four packages | implemented | modify API and three callers | repository-understanding | missed caller or compatibility shim |
+| `repair-concurrent-cache` | repair async flow | workflow across cache and loader | implemented | modify cache, add helper and test | task-effectiveness | permanently caching a rejection |
+| `restore-cli-error-contract` | repair and test CLI | workflow across library and process boundary | implemented | modify library, bin, and add test | verification-quality | unit-only fix that misses exit behavior |
 
 ## Admission rule for new cases
 

@@ -134,7 +134,7 @@ function runCli(executable: string, output: string, mode?: string, profile?: str
   );
 }
 
-test('built CLI runs all twelve cases end to end and writes a parseable ad hoc report', () => {
+test('built CLI runs all twenty cases end to end and writes a parseable ad hoc report', () => {
   const root = mkdtempSync(join(tmpdir(), 'agent-eval-cli-'));
   try {
     const executable = writeFakeAcc(root);
@@ -142,19 +142,19 @@ test('built CLI runs all twelve cases end to end and writes a parseable ad hoc r
     const run = runCli(executable, output);
     assert.equal(run.status, 0, `${run.stderr}\n${run.stdout}`);
     assert.match(run.stdout, /terminal\s+elapsed_ms\s+total_tokens/);
-    assert.match(run.stdout, /running 1\/12  accurate-change-handoff \(repeat 1\)/);
+    assert.match(run.stdout, /running 1\/20  accurate-change-handoff \(repeat 1\)/);
     assert.match(run.stdout, /create-to-spec\s+1\s+pass/);
     assert.match(run.stdout, /create-to-spec\s+1\s+pass\s+true\s+true\s+completed\s+\d+\s+6/);
-    assert.match(run.stdout, /report\s+completed\s+passes 12\/12/);
+    assert.match(run.stdout, /report\s+completed\s+passes 20\/20/);
     const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
-    assert.equal(records.length, 13);
-    assert.deepEqual(records.slice(0, 12).map((record) => record.status), Array(12).fill('pass'));
-    assert.equal(records[12].schemaVersion, 4);
-    assert.equal(records[12].artifactSchemaVersion, 2);
-    assert.equal(records[12].profile, null);
-    assert.equal(records[12].profileVerdict, null);
-    assert.equal(records[12].suiteContentHash.length, 64);
-    assert.deepEqual(records[12].cleanup, {
+    assert.equal(records.length, 21);
+    assert.deepEqual(records.slice(0, 20).map((record) => record.status), Array(20).fill('pass'));
+    assert.equal(records[20].schemaVersion, 4);
+    assert.equal(records[20].artifactSchemaVersion, 2);
+    assert.equal(records[20].profile, null);
+    assert.equal(records[20].profileVerdict, null);
+    assert.equal(records[20].suiteContentHash.length, 64);
+    assert.deepEqual(records[20].cleanup, {
       workspaces: true,
       adapterHomes: true,
       processes: true,

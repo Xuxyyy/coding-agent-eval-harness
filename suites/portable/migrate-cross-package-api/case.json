@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 3,
+  "id": "migrate-cross-package-api",
+  "level": "workflow",
+  "primaryQuality": "repository-understanding",
+  "supportingQualities": ["task-effectiveness", "change-discipline", "verification-quality"],
+  "startState": "unsolved",
+  "expectedDisposition": "implemented",
+  "task": {
+    "prompt": "Migrate the shared `formatRecord` API from positional arguments to one `{prefix, value}` options object. Update every caller in the CLI, plugin, and app packages. Remove the old call form rather than keeping a compatibility shim. Do not change tests, package metadata, exports, or documentation.",
+    "maxSeconds": 180
+  },
+  "grade": {
+    "allowedWrites": ["packages/core/src/format-record.js", "packages/cli/src/render.js", "packages/plugin/src/activate.js", "packages/app/src/start.js"],
+    "checks": [
+      {"kind": "exit0", "command": "npm test"},
+      {"kind": "exit0", "command": "node verify-migration.mjs"},
+      {"kind": "unchanged", "path": "packages/core/src/index.js"},
+      {"kind": "unchanged", "path": "packages/core/package.json"},
+      {"kind": "unchanged", "path": "packages/cli/package.json"},
+      {"kind": "unchanged", "path": "packages/plugin/package.json"},
+      {"kind": "unchanged", "path": "test/core.test.js"},
+      {"kind": "unchanged", "path": "test/consumers.test.js"},
+      {"kind": "unchanged", "path": "verify-migration.mjs"},
+      {"kind": "unchanged", "path": "README.md"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {"finalResponse": {"required": ["formatRecord"], "forbidden": []}, "controlledEvents": []}
+}

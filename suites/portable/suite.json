@@ -54,6 +54,74 @@
       "repeats": 1
     },
     {
+      "id": "smoke-v2",
+      "caseIds": [
+        "create-to-spec",
+        "preserve-user-wip",
+        "diagnose-root-cause",
+        "migrate-cross-package-api"
+      ],
+      "repeats": 1
+    },
+    {
+      "id": "focused-v2",
+      "caseIds": [
+        "create-to-spec",
+        "fix-failing-test",
+        "preserve-user-wip",
+        "already-correct-no-op",
+        "follow-repository-instructions",
+        "add-regression-coverage",
+        "recover-transient-verification",
+        "accurate-change-handoff",
+        "block-on-missing-contract",
+        "remove-deprecated-module",
+        "diagnose-root-cause",
+        "repair-stale-test-contract",
+        "regenerate-derived-source",
+        "resolve-conflict-preserving-behavior"
+      ],
+      "repeats": 1
+    },
+    {
+      "id": "workflow-v2",
+      "caseIds": [
+        "repair-config-flow",
+        "preserve-header-contract",
+        "refactor-shared-validation",
+        "migrate-cross-package-api",
+        "repair-concurrent-cache",
+        "restore-cli-error-contract"
+      ],
+      "repeats": 1
+    },
+    {
+      "id": "full-v2",
+      "caseIds": [
+        "create-to-spec",
+        "fix-failing-test",
+        "preserve-user-wip",
+        "already-correct-no-op",
+        "follow-repository-instructions",
+        "add-regression-coverage",
+        "recover-transient-verification",
+        "accurate-change-handoff",
+        "block-on-missing-contract",
+        "remove-deprecated-module",
+        "diagnose-root-cause",
+        "repair-stale-test-contract",
+        "regenerate-derived-source",
+        "resolve-conflict-preserving-behavior",
+        "repair-config-flow",
+        "preserve-header-contract",
+        "refactor-shared-validation",
+        "migrate-cross-package-api",
+        "repair-concurrent-cache",
+        "restore-cli-error-contract"
+      ],
+      "repeats": 1
+    },
+    {
       "id": "foundation-v1",
       "caseIds": [
         "create-to-spec",

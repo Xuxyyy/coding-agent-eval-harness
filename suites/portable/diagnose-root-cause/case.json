@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 3,
+  "id": "diagnose-root-cause",
+  "level": "focused",
+  "primaryQuality": "communication-handoff",
+  "supportingQualities": ["repository-understanding", "judgment-autonomy", "user-work-protection"],
+  "startState": "satisfied",
+  "expectedDisposition": "no-change",
+  "task": {
+    "prompt": "Investigate why the encoded route case in `npm test` fails. Report the exact root cause and affected function, but do not modify the repository. Include the command you used to reproduce the problem.",
+    "maxSeconds": 120
+  },
+  "grade": {
+    "allowedWrites": [],
+    "checks": [
+      {"kind": "unchanged", "path": "src/build-cache-key.js"},
+      {"kind": "unchanged", "path": "src/normalize-segment.js"},
+      {"kind": "unchanged", "path": "test/build-cache-key.test.js"},
+      {"kind": "unchanged", "path": "README.md"},
+      {"kind": "unchanged", "path": "package.json"}
+    ]
+  },
+  "trialChecks": {
+    "finalResponse": {
+      "required": [
+        "buildCacheKey",
+        "decodeURIComponent",
+        "%2F|encoded slash",
+        "decode.{0,60}(?:before|prior to).{0,30}split|split.{0,60}(?:after|following).{0,30}decode",
+        "npm test",
+        "no (?:(?:repository |workspace )?changes (?:were )?made|files? (?:were )?(?:changed|modified|edited))|did not (?:edit|change|modify)"
+      ],
+      "forbidden": ["(?:fixed|implemented|updated|changed).{0,40}src/build-cache-key\\.js"]
+    },
+    "controlledEvents": []
+  }
+}

@@ -318,6 +318,10 @@ function temporaryIndexes(): string[] {
 
 test('Git evidence includes additions, modifications, deletions, binary data, and truncation', async () => {
   const root = mkdtempSync(join(tmpdir(), 'agent-eval-diff-'));
+  const originalTmpdir = process.env.TMPDIR;
+  const isolatedTmpdir = join(root, 'tmp');
+  mkdirSync(isolatedTmpdir);
+  process.env.TMPDIR = isolatedTmpdir;
   try {
     git(root, ['init', '-q', '-b', 'main']);
     git(root, ['config', 'user.name', 'Test']);
@@ -356,6 +360,8 @@ test('Git evidence includes additions, modifications, deletions, binary data, an
     assert.equal(bounded.data.byteLength, GIT_DIFF_LIMIT_BYTES);
     assert.equal(bounded.truncated, true);
   } finally {
+    if (originalTmpdir === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = originalTmpdir;
     rmSync(root, {recursive: true, force: true});
   }
 });
