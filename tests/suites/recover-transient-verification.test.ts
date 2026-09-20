@@ -27,10 +27,13 @@ test('recovery case admits the solution and rejects a skipped retry', () => {
     assert.equal(gradeTrialBehavior(definition, 'completed', equivalent, good.controlledEvents, repository).passed, true);
     const exitCodeReport = 'node verify.mjs: first attempt failed transiently; retry exited **0**.';
     assert.equal(gradeTrialBehavior(definition, 'completed', exitCodeReport, good.controlledEvents, repository).passed, true);
+    const secondAttempt = 'node verify.mjs succeeded on the second attempt after the transient failure.';
+    assert.equal(gradeTrialBehavior(definition, 'completed', secondAttempt, good.controlledEvents, repository).passed, true);
     const bad = definition.evidence.knownBad;
     assert.equal(gradeTrialBehavior(definition, bad.terminalStatus, bad.finalMessage, bad.controlledEvents, repository).passed, false);
     assert.equal(gradeTrialBehavior(definition, 'completed', '// retry happened', good.controlledEvents, repository).passed, false);
     assert.equal(gradeTrialBehavior(definition, 'completed', 'The verification retry ran again.', good.controlledEvents, repository).passed, false);
+    assert.equal(gradeTrialBehavior(definition, 'completed', 'I did not retry. Verification passed.', good.controlledEvents, repository).passed, false);
     writeFixtureFile(fixture.root, 'notes.txt', 'unrelated');
     assert.equal(gradeCase(definition, fixture.root, fixture.before).clean, false);
   } finally { assert.equal(removeFixture(fixture.root), true); }

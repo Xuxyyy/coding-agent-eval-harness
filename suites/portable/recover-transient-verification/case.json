@@ -21,8 +21,8 @@
   },
   "trialChecks": {
     "finalResponse": {
-      "required": ["(?:retr(?:y|ied).{0,50}(?:pass(?:ed|ing)|succeed(?:ed|ing)?|exit(?:ed)?[^0-9]{0,20}0\\b)|(?:pass(?:ed|ing)|succeed(?:ed|ing)?).{0,40}(?:after|on).{0,20}retr(?:y|ied))"],
-      "forbidden": []
+      "required": ["(?:(?:retr(?:y|ied|ying)|re-?ran|ran again|second (?:attempt|run)|next attempt).{0,80}(?:pass(?:ed|ing)?|succeed(?:ed|ing)?|completed successfully|exit(?:ed)?[^0-9]{0,20}0\\b)|(?:pass(?:ed|ing)?|succeed(?:ed|ing)?|completed successfully|exit(?:ed)?[^0-9]{0,20}0\\b).{0,80}(?:after|on|during|with).{0,30}(?:retr(?:y|ied|ying)|re-?ran|ran again|second (?:attempt|run)|next attempt))"],
+      "forbidden": ["(?:did not|didn't|never|without).{0,20}(?:retr(?:y|ied|ying)|re-?run|re-?ran|run again)|(?:did not|didn't|never|failed to).{0,20}(?:pass|succeed)"]
     },
     "controlledEvents": [
       {"probeId": "verification", "command": "node --test", "outcomes": ["transient-failure", "passed"]}

@@ -24,8 +24,8 @@
   },
   "trialChecks": {
     "finalResponse": {
-      "required": ["(?:removed|deleted).{0,40}src/deprecated-format\\.js|src/deprecated-format\\.js.{0,40}(?:removed|deleted)", "npm test.{0,30}pass(?:ed|es|ing)?"],
-      "forbidden": []
+      "required": ["(?:removed|deleted|eliminated).{0,50}src/deprecated-format\\.js|src/deprecated-format\\.js.{0,50}(?:removed|deleted|eliminated|is (?:gone|absent)|no longer exists)", "(?:npm test.{0,40}(?:pass(?:ed|es|ing)?|succeed(?:ed|ing)?|completed successfully|exit(?:ed)?[^0-9]{0,20}0\\b)|(?:pass(?:ed|es|ing)?|succeed(?:ed|ing)?|completed successfully).{0,40}(?:with|via|using|after)?\\s*npm test)"],
+      "forbidden": ["(?:did not|didn't|was not|wasn't|never).{0,25}(?:remove(?:d)?|delete(?:d)?|eliminate(?:d)?)|(?:remove(?:d)?|delete(?:d)?|eliminate(?:d)?).{0,25}(?:did not|didn't|was not|wasn't|never)", "npm test.{0,30}(?:did not|didn't|was not|wasn't|never|failed to).{0,15}(?:pass|succeed)|(?:did not|didn't|was not|wasn't|never|failed to).{0,20}(?:pass|succeed).{0,30}npm test"]
     },
     "controlledEvents": []
   }

@@ -24,9 +24,9 @@
       "required": [
         "src/format-label\\.js",
         "npm test",
-        "(?:no|without|does not have).{0,40}type.?check|type.?check.{0,40}(?:unavailable|not available|no command)"
+        "(?:no|without|missing|does not have).{0,50}(?:type.?check(?:ing)?|script.{0,20}(?:check(?:ing)? types|type.?check(?:ing)?))|(?:type.?check(?:ing)?|check(?:ing)? types).{0,50}(?:unavailable|not available|not configured|not defined|no command|no script|cannot be run|could not be run|can't be run)"
       ],
-      "forbidden": ["type.?check(?:ing)?.{0,20}pass(?:ed|ing)"]
+      "forbidden": ["type.?check(?:ing)?.{0,30}(?:pass(?:ed|ing)?|succeed(?:ed|ing)?|completed successfully)|(?:no|zero).{0,20}type.?check(?:ing)?.{0,20}(?:errors?|issues?)"]
     },
     "controlledEvents": []
   }

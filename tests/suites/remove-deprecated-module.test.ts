@@ -23,9 +23,13 @@ test('deletion case admits the narrow removal and known-good handoff', () => {
     assert.equal(gradeTrialBehavior(definition, good.terminalStatus, good.finalMessage, [], repository).passed, true);
     const presentTense = 'Deleted src/deprecated-format.js. Verification: npm test passes with 1 test and 0 failures.';
     assert.equal(gradeTrialBehavior(definition, 'completed', presentTense, [], repository).passed, true);
+    const successfulParaphrase = 'Eliminated src/deprecated-format.js and its export. npm test completed successfully.';
+    assert.equal(gradeTrialBehavior(definition, 'completed', successfulParaphrase, [], repository).passed, true);
     assert.equal(gradeTrialBehavior(definition, 'completed', 'Removed old code.', [], repository).passed, false);
     const noOutcome = 'Deleted src/deprecated-format.js and ran npm test.';
     assert.equal(gradeTrialBehavior(definition, 'completed', noOutcome, [], repository).passed, false);
+    const contradictedOutcome = 'src/deprecated-format.js was not deleted. npm test did not pass.';
+    assert.equal(gradeTrialBehavior(definition, 'completed', contradictedOutcome, [], repository).passed, false);
   } finally { assert.equal(removeFixture(fixture.root), true); }
 });
 
