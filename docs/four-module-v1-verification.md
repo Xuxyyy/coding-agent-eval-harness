@@ -22,7 +22,7 @@ agent-builder modules: reasoning, execution, recovery, and verification.
 The verified suite content hash is:
 
 ```text
-307a0a55f7ef880672840e5ac79442ef7d6995a15e18617d8afb4205b7919f25
+0de22439853a8ee1680e2103261df08ed54163608082625a98b3432cf0c9a414
 ```
 
 ## Fixture admission
@@ -57,12 +57,31 @@ and both focused and full probes in the cross-layer verification case.
 
 ```text
 npm test
-91 tests passed, 0 failed
+96 tests passed, 0 failed
 
 npm pack --dry-run --json
-completed successfully; 398 package entries
+completed successfully; 404 package entries
 ```
 
 The packed-install test also ran all five profiles through the installed public
 CLI and checked `met`, `not_met`, and `incomplete` verdicts. No live agent or
-paid-provider run was used for this verification.
+paid-provider run was used for the offline acceptance evidence above.
+
+## ACC public-release verification
+
+One live `full-agent-v1` run used ACC 0.1.0 with requested model
+`deepseek-v4-flash`. It completed all 25 trials with no harness errors and
+confirmed cleanup for every workspace, adapter home, process, and controlled
+probe. The run produced 24 passes and one response-grader false negative, for
+a `not_met` profile verdict. It recorded 657,450 total tokens.
+
+The failed trial, `diagnose-root-cause`, met every repository and factual
+response requirement. ACC reported, “No repository files were modified,” but
+the no-change pattern did not accept that equivalent wording. The contract was
+narrowly corrected and covered by an offline regression assertion. A single
+live rerun of that case then passed with 10,813 total tokens.
+
+No Codex or Claude Code live calls were made. The ignored local result bundles
+were inspected but are not part of the published package. A second paid
+25-trial run was intentionally not used to restate the already observed 24
+unaffected outcomes.

@@ -74,11 +74,8 @@ provider call was made.
 ## Repository and scope evidence
 
 - Work stayed on `main` and modified only this repository.
-- The sibling `coding-cli` repository was read only and remained clean before
-  and after every independent gate.
-- At verification time, the active planning set contained only
-  `project-goal.md`, `user-centered-evaluation-standard.md`, and
-  `establish-user-centered-conformance-foundation.md`.
+- External implementation repositories were read only and remained unchanged
+  before and after every independent gate.
 - Fixture provenance and uncovered quality gaps are recorded in
   `suites/portable/README.md`.
 

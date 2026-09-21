@@ -1,227 +1,209 @@
-# Agent Eval Harness
+# Coding Agent Eval Harness
 
-Agent Eval Harness tests coding agents through their public CLI. It asks whether
-an agent can understand repository work, make safe changes, recover from tool
-problems, and verify the result truthfully.
+Coding Agent Eval Harness is a portable, deterministic evaluation tool for
+coding-agent CLIs. It was originally built to evaluate
+[ACC](https://github.com/Xuxyyy/terminal-coding-agent) and now provides the
+same repository tasks, grading rules, and evidence model for ACC, Codex, and
+Claude Code.
 
-The harness is a standalone Node.js tool. It runs trusted, deterministic
-fixtures through neutral adapters. It never imports a tested product's
-internals. The bundled portable suite is an evaluation foundation, not a
-leaderboard or complete certification.
+The harness evaluates the agent through its public CLI. It does not import the
+agent's internals. Each trial starts from a fresh temporary Git repository,
+runs one bounded task, grades the resulting repository and final response, and
+writes an auditable result bundle.
 
-## Four-module evaluation model
+The bundled suite is an evaluation foundation. It is not a leaderboard or a
+claim of complete agent quality.
 
-Every portable case belongs to exactly one agent-builder module:
+## What it measures
 
-- `reasoning`: understand the real code path, contract, and right action.
-- `execution`: make the required repository change with controlled scope.
-- `recovery`: respond safely to failed tools or partially completed work.
-- `verification`: gather enough evidence and report it accurately.
+The 25 portable cases are organized into four agent-builder modules:
 
-Four other dimensions remain separate:
+- `reasoning`: understand the active code path, contract, and correct action.
+- `execution`: make a complete repository change with controlled scope.
+- `recovery`: respond safely to failed tools and partially completed work.
+- `verification`: gather enough evidence and report the result accurately.
 
-- `level` describes fixture shape: `focused` or `workflow`.
-- `horizon` describes dependency length: `short`, `multi-stage`, or
-  `long-horizon`.
-- `primaryQuality` and `supportingQualities` provide detailed diagnosis.
-- safety rules protect user work, instructions, tests, generators, and
-  unrelated files across every module.
+Cases also record fixture level, dependency horizon, primary quality, and
+supporting qualities. Safety rules protect user work, repository instructions,
+tests, generators, and unrelated files across every module.
 
-The portable suite has 25 cases. Each bundled profile runs one trial per case,
-so it makes no reliability claim. See
-[the suite taxonomy](docs/suite-taxonomy.md) and
-[the portable suite record](suites/portable/README.md). The offline acceptance
-evidence is preserved in the
-[four-module verification record](docs/four-module-v1-verification.md).
+See the [suite taxonomy](docs/suite-taxonomy.md) and
+[portable suite reference](suites/portable/README.md) for the complete case
+matrix.
 
-## Requirements and offline gate
+## Built-in adapters
+
+| Adapter | CLI | Role |
+| --- | --- | --- |
+| `acc` | `acc` | Original custom-agent integration and primary real-world verification target |
+| `codex` | `codex` | Additional built-in coding-agent integration |
+| `claude` | `claude` | Additional built-in coding-agent integration |
+
+This release supports these three adapters only. It does not define a public
+plugin or third-party adapter protocol.
+
+## Requirements
 
 - Node.js 22 or newer
 - Git
 - macOS or Linux
+- A supported agent CLI for live evaluation
+
+Install and run the offline gate:
 
 ```sh
-npm install
+git clone https://github.com/Xuxyyy/coding-agent-eval-harness.git
+cd coding-agent-eval-harness
+npm ci
 npm test
-npm pack --dry-run --json
 ```
 
-Tests and package checks use a fake executable. They do not call a model,
-provider, ACC, Codex, or Claude Code. They need no network access.
+Tests use local fake executables. They do not call an agent, model, provider,
+network service, or paid API.
 
-## Run a profile
+## Run the portable suite
 
-Build first, then select one module or the full suite:
+Build the CLI, then choose one module or the complete profile:
 
 ```sh
 npm run build
 node dist/cli/index.js run \
   --agent acc \
   --command "$(command -v acc)" \
-  --cases suites/portable \
+  --suite portable \
   --profile reasoning-v1
 ```
 
-The five profile IDs are:
+The profile IDs are:
 
-- `reasoning-v1`: seven cases.
-- `execution-v1`: eleven cases.
-- `recovery-v1`: three cases.
-- `verification-v1`: four cases.
-- `full-agent-v1`: all 25 cases, ordered by module and dependency complexity.
+- `reasoning-v1`: 7 cases
+- `execution-v1`: 11 cases
+- `recovery-v1`: 3 cases
+- `verification-v1`: 4 cases
+- `full-agent-v1`: all 25 cases in module order
 
-Use the matching npm shortcuts for ACC, Codex, or Claude Code:
+Convenience scripts are available for every built-in adapter and profile:
 
 ```sh
 npm run -s eval:reasoning:acc
 npm run -s eval:execution:codex
 npm run -s eval:recovery:claude
-npm run -s eval:verification:acc
-npm run -s eval:full:codex
+npm run -s eval:full:acc
 ```
 
-These commands make live provider calls and may consume account credit. ACC
-shortcuts use `deepseek-v4-flash`. Codex shortcuts use `gpt-5.6-luna`. Claude
-Code shortcuts use its configured default model.
+These commands use the agent CLI's configured default model. Use `--model`
+with the main CLI when an exact model is part of the evaluation identity.
+Live runs use the authentication already available to the selected CLI and may
+consume provider credit.
 
-Old bundled profile IDs are not aliases. They return an unknown-profile error.
-Historical result files remain readable.
-
-Profile order and repeat count are versioned. `--profile` cannot be combined
-with `--case` or `--repeats`. `--max-seconds` may lower a case limit without
-changing profile identity, and the report records that cap.
-
-Ad hoc runs are also available:
+For an ad hoc selection, use `--case` and `--repeats` instead of a profile:
 
 ```sh
 node dist/cli/index.js run \
-  --agent codex \
-  --command "$(command -v codex)" \
-  --cases suites/portable \
+  --agent acc \
+  --command "$(command -v acc)" \
+  --suite portable \
   --case create-to-spec \
   --repeats 1
 ```
 
-The command value is passed to the operating system as one executable. It is
-never evaluated as a shell command.
+Use `--cases <directory>` instead of `--suite portable` to run a trusted custom
+suite. The two options are mutually exclusive. The command value is one
+executable path or name and is never evaluated as a shell command.
 
-Inspect one exact trial:
+## Results and inspection
+
+The CLI prints progress and a compact summary:
+
+```text
+case                         repeat  status  solved  clean  terminal   elapsed_ms  total_tokens
+create-to-spec               1       pass    true    true   completed  8200        14000
+...
+profile  reasoning-v1  verdict met
+result   <path>/results/<timestamp>-acc.jsonl
+```
+
+Inspect one exact trial and its structured evidence:
 
 ```sh
-agent-eval inspect \
-  --result results/run.jsonl \
+node dist/cli/index.js inspect \
+  --result results/<run>.jsonl \
   --case create-to-spec \
   --repeat 1
 ```
 
-Inspection shows module, horizon, primary quality, disposition, status, final
-message, events, patch, checks, cleanup, and artifact paths.
-
-## Case and suite contracts
-
-Each case directory contains `case.json`, `workspace/`, `solution/`,
-`counterexample/`, and reviewed `evidence/`. Current portable cases use schema
-version 4:
-
-```json
-{
-  "schemaVersion": 4,
-  "id": "example-case",
-  "level": "focused",
-  "primaryModule": "execution",
-  "horizon": "short",
-  "primaryQuality": "task-effectiveness",
-  "supportingQualities": ["change-discipline"],
-  "startState": "unsolved",
-  "expectedDisposition": "implemented",
-  "task": {
-    "prompt": "Fix the behavior described by the repository.",
-    "maxSeconds": 120
-  },
-  "grade": {
-    "allowedWrites": ["src/example.js"],
-    "checks": [
-      {"kind": "exit0", "command": "node --test"},
-      {"kind": "unchanged", "path": "test/example.test.js"}
-    ]
-  }
-}
-```
-
-Repository checks support `exists`, `absent`, `contains`, `matches`, `exit0`,
-and `unchanged`. Allowed writes are exact. Unsafe paths, symlinks, duplicate
-metadata, and unknown fields are rejected.
-
-Schema 4 behavior checks can require or forbid final-response facts. Controlled
-probes support three strategies:
-
-- `command`: run the real authored verification command.
-- `transient-first`: fail once, then run the command.
-- `unavailable`: return a deterministic unavailable result.
-
-Probe outcomes can use subsequence or exact matching. Exact matching detects
-unwanted retries. Probe events live outside the editable workspace and are
-copied into the immutable trial artifact after validation.
-
-The initial workspace, known-good solution, and known-bad counterexample must
-pass admission checks. An `unsolved` workspace initially fails an outcome
-check. A `satisfied` workspace already meets its repository contract. The
-solution must pass and remain within scope. The counterexample must fail full
-repository and behavior conformance.
-
-The portable `suite.json` uses schema version 2. Each profile records its
-module, exact ordered case IDs, and repeat count. Every case must appear once
-across the four module profiles. `full-agent-v1` must contain their exact
-concatenation.
-
-External case schemas 1–3 and suite schema 1 remain readable for ad hoc and
-historical use. They cannot weaken the current portable suite contract.
-
-## Reports and verdicts
-
-New runs write report schema version 5 and artifact schema version 2. Trials
-record `primaryModule`, `horizon`, quality metadata, repository and behavior
-grades, final changes, evidence paths, and cleanup. Aggregates include both
-`byPrimaryModule` and `byPrimaryQuality`.
-
-The reader continues accepting report versions 2–4. Version 2 reports have
-limited inspection because structured artifacts did not yet exist.
-
-Each trial uses a fresh temporary Git repository. Its immutable bundle stores
-raw stdout and stderr bytes, normalized public events, a bounded binary-capable
-Git patch, checksums, grades, controlled events, timing, errors, and cleanup.
-Provider private reasoning is never stored.
+Inspection shows identity, module, horizon, disposition, terminal status,
+final message, normalized public events, Git diff, repository checks, behavior
+checks, cleanup, and artifact paths.
 
 Profile verdicts are:
 
 - `met`: every required trial passed.
-- `not_met`: all evidence exists and at least one trial failed.
+- `not_met`: all evidence exists and at least one required trial failed.
 - `incomplete`: a required trial is missing or has an evidence error.
 
-An error never disappears from a favorable denominator. Ad hoc runs have no
-profile verdict. The harness does not calculate a weighted overall score.
+Ad hoc runs have no profile verdict. The harness does not calculate a weighted
+overall score.
 
-## Trust and live-use boundaries
+## Evidence model
 
-Case commands and fixtures are trusted repository input. Do not run an
-unreviewed suite. The selected executable can write inside a temporary task
-workspace; the harness does not prove it cannot act outside that workspace.
+New runs write report schema version 5 and artifact schema version 2. The
+reader also accepts historical report versions 2 through 4.
 
-The harness does not copy credentials. Adapters use the authentication already
-available to their public CLI. Live runs may consume paid provider usage. Live
-runs are never part of tests or CI.
+Each immutable trial bundle contains:
 
-Portable grading uses discovered facts, safe changes, deterministic repository
-checks, and verification evidence. It does not require a product-specific tool
-name or call count.
+- raw stdout and stderr bytes;
+- normalized public agent events;
+- a bounded binary-capable Git patch;
+- repository and response grades;
+- controlled verification events;
+- checksums, timing, errors, and cleanup evidence.
 
-## Add an adapter or case
+Provider-private reasoning is never stored. A provider or harness error never
+disappears from a favorable denominator.
 
-An adapter implements `AgentAdapter` in `src/adapters/types.ts`. It must use
-bounded execution, normalize one terminal result, capture public evidence, and
-clean up owned resources.
+## Case contract
 
-Start new cases from a user situation and risk. Assign one primary module and
-one horizon. Record the success oracle, protected work, known-good behavior,
-known-bad behavior, and bounded claim. Update the exact module profile and the
-full profile when the case is admitted.
+Each portable case contains a manifest, initial workspace, reviewed solution,
+plausible counterexample, and known-good and known-bad evidence. Admission
+checks prove that the starting state, solution, counterexample, and evidence
+match the declared contract before the case can run.
+
+Repository checks support `exists`, `absent`, `contains`, `matches`, `exit0`,
+and `unchanged`. Allowed writes are exact. Controlled probes can run a real
+verification command, fail once before succeeding, or return a deterministic
+unavailable result.
+
+## Trust boundaries and limitations
+
+- Suites and their fixture commands are trusted code. Do not run an unreviewed
+  suite.
+- The agent works in a temporary repository, but the harness does not prove
+  that an arbitrary executable cannot act outside that directory.
+- Credentials are not copied. Adapters use the selected CLI's existing local
+  authentication.
+- Live agent runs are intentionally excluded from tests and CI.
+- One trial per bundled profile case does not establish reliability.
+- Long-horizon means connected work within one CLI run. Cross-session pause
+  and resume are not covered.
+- Grading does not require a product-specific tool name or tool-call count.
+
+## Development and verification
+
+```sh
+npm run build
+npm test
+npm pack --dry-run --json
+```
+
+The package test installs the generated archive in a temporary consumer,
+executes every profile through the public CLI, verifies verdict distinctions,
+and checks that private or temporary files are excluded.
+
+See the [documentation index](docs/README.md) for the current design references
+and historical verification records. The latest offline acceptance evidence is
+the [four-module verification record](docs/four-module-v1-verification.md).
+
+## License
+
+MIT
