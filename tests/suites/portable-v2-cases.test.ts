@@ -79,6 +79,8 @@ test('diagnosis accepts an equivalent factual report and rejects a symptom-only 
     assert.equal(gradeTrialBehavior(definition, 'completed', repositoryWording, [], repository).passed, true);
     const modifiedWording = 'buildCacheKey runs decodeURIComponent before split, so %2F becomes a separator. npm test reproduces it. No files were modified.';
     assert.equal(gradeTrialBehavior(definition, 'completed', modifiedWording, [], repository).passed, true);
+    const observedWording = 'npm test reproduced the bug. buildCacheKey decodes %2F before it splits the route. No repository files were modified.';
+    assert.equal(gradeTrialBehavior(definition, 'completed', observedWording, [], repository).passed, true);
     assert.equal(
       gradeTrialBehavior(definition, 'completed', 'npm test fails around route parsing. No files were changed.', [], repository).passed,
       false,

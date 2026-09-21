@@ -49,7 +49,7 @@
         "%2F|encoded slash",
         "decod.{0,100}(?:(?:before|prior to|followed by).{0,40}split|then.{0,30}split)|split.{0,100}(?:after|following).{0,40}decod",
         "npm test",
-        "no (?:(?:repository |workspace )?changes (?:were )?made|files? (?:were )?(?:changed|modified|edited))|did not (?:edit|change|modify)|(?:repository|workspace|files?|code).{0,30}(?:untouched|unchanged|unmodified|left intact)"
+        "no (?:repository |workspace )?(?:changes|files?) (?:were )?(?:made|changed|modified|edited)|did not (?:edit|change|modify)|(?:repository|workspace|files?|code).{0,30}(?:untouched|unchanged|unmodified|left intact)"
       ],
       "forbidden": []
     },
