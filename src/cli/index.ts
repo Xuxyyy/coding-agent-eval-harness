@@ -4,7 +4,8 @@ import {
   type RunOptions,
 } from '../engine/run-evaluation.js';
 import type {AgentId} from '../adapters/types.js';
-import {realpathSync} from 'node:fs';
+import {existsSync, realpathSync} from 'node:fs';
+import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {inspectResult, type InspectOptions} from './inspect.js';
 import {ProgressDisplay} from './progress.js';
@@ -14,13 +15,16 @@ export type {InspectOptions} from './inspect.js';
 export {formatTrialHeader, formatTrialRow} from './progress.js';
 
 export const HELP = `Usage:
-  agent-eval run --agent acc|codex|claude --command <executable> --cases <directory> [options]
+  agent-eval run --agent acc|codex|claude --command <executable> (--suite portable | --cases <directory>) [options]
   agent-eval inspect --result <jsonl> --case <id> --repeat <number>
 
 Required:
   --agent <acc|codex|claude> Built-in adapter
   --command <executable>    One executable path or name; never a shell command
-  --cases <directory>       Trusted case-suite directory
+
+Suite selection (choose one):
+  --suite portable          Bundled portable case suite
+  --cases <directory>       Trusted custom case-suite directory
 
 Options:
   --profile <id>            Run an exact versioned profile
@@ -56,6 +60,18 @@ function positiveInteger(raw: string, flag: string): number {
   return parsed;
 }
 
+export function bundledSuitePath(id: string): string {
+  if (id !== 'portable') throw new Error(`unknown bundled suite: ${id}`);
+  const moduleDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve(moduleDir, '../../suites/portable'),
+    resolve(moduleDir, '../../../suites/portable'),
+  ];
+  const found = candidates.find((candidate) => existsSync(resolve(candidate, 'suite.json')));
+  if (found === undefined) throw new Error('bundled portable suite is missing');
+  return found;
+}
+
 export function parseCliArgs(args: string[]): CliParse {
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) return {help: true};
   if (args[0] === 'inspect') {
@@ -86,6 +102,7 @@ export function parseCliArgs(args: string[]): CliParse {
   let agent: AgentId | undefined;
   let command: string | undefined;
   let casesDir: string | undefined;
+  let suite: string | undefined;
   let repeats: number | undefined;
   let profile: string | undefined;
   let maxSeconds: number | undefined;
@@ -103,7 +120,12 @@ export function parseCliArgs(args: string[]): CliParse {
     } else if (flag === '--command') {
       command = value(args, ++index, flag);
     } else if (flag === '--cases') {
+      if (casesDir !== undefined) throw new Error('--cases may be provided only once');
       casesDir = value(args, ++index, flag);
+    } else if (flag === '--suite') {
+      if (suite !== undefined) throw new Error('--suite may be provided only once');
+      suite = value(args, ++index, flag);
+      if (suite !== 'portable') throw new Error('--suite must be portable');
     } else if (flag === '--case') {
       caseIds.push(value(args, ++index, flag));
     } else if (flag === '--profile') {
@@ -122,7 +144,12 @@ export function parseCliArgs(args: string[]): CliParse {
   }
   if (agent === undefined) throw new Error('--agent is required');
   if (command === undefined) throw new Error('--command is required');
-  if (casesDir === undefined) throw new Error('--cases is required');
+  if (casesDir !== undefined && suite !== undefined) {
+    throw new Error('--suite cannot be combined with --cases');
+  }
+  if (casesDir === undefined && suite === undefined) {
+    throw new Error('one of --suite or --cases is required');
+  }
   if (profile !== undefined && (caseIds.length > 0 || repeats !== undefined)) {
     throw new Error('--profile cannot be combined with --case or --repeats');
   }
@@ -131,7 +158,7 @@ export function parseCliArgs(args: string[]): CliParse {
     options: {
       agent,
       command,
-      casesDir,
+      casesDir: casesDir ?? bundledSuitePath(suite!),
       ...(profile === undefined ? {repeats: repeats ?? 1} : {profile}),
       ...(caseIds.length === 0 ? {} : {caseIds}),
       ...(maxSeconds === undefined ? {} : {maxSeconds}),

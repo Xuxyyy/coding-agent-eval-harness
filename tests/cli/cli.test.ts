@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import test from 'node:test';
-import {HELP, parseCliArgs} from '../../src/cli/index.js';
+import {bundledSuitePath, HELP, parseCliArgs} from '../../src/cli/index.js';
 import {writeFakeAcc} from '../fixtures/fake-acc.js';
 
 test('CLI parses every supported argument', () => {
@@ -52,11 +52,38 @@ test('CLI parses every supported argument', () => {
     },
   );
   assert.match(HELP, /never a shell command/);
+  assert.match(HELP, /--suite portable/);
   assert.match(HELP, /--profile <id>/);
   assert.match(HELP, /agent-eval inspect/);
   assert.deepEqual(
     parseCliArgs(['inspect', '--result', 'out.jsonl', '--case', 'a', '--repeat', '2']),
     {help: false, inspect: {result: 'out.jsonl', caseId: 'a', repeat: 2}},
+  );
+});
+
+test('CLI resolves the bundled portable suite and keeps custom suites explicit', () => {
+  assert.deepEqual(
+    parseCliArgs(['run', '--agent', 'acc', '--command', 'acc', '--suite', 'portable']),
+    {
+      help: false,
+      options: {
+        agent: 'acc',
+        command: 'acc',
+        casesDir: bundledSuitePath('portable'),
+        repeats: 1,
+      },
+    },
+  );
+  assert.equal(bundledSuitePath('portable'), resolve('suites/portable'));
+  assert.throws(
+    () => parseCliArgs([
+      'run', '--agent', 'acc', '--command', 'acc', '--suite', 'portable', '--cases', 'suite',
+    ]),
+    /cannot be combined/,
+  );
+  assert.throws(
+    () => parseCliArgs(['run', '--agent', 'acc', '--command', 'acc', '--suite', 'other']),
+    /must be portable/,
   );
 });
 
@@ -90,6 +117,10 @@ test('CLI rejects missing, unknown, and invalid arguments', () => {
   assert.throws(() => parseCliArgs(['other']), /first argument must be run/);
   assert.throws(() => parseCliArgs(['run', '--agent', 'other']), /acc, codex, or claude/);
   assert.throws(() => parseCliArgs(['run', '--agent', 'acc']), /--command is required/);
+  assert.throws(
+    () => parseCliArgs(['run', '--agent', 'acc', '--command', 'acc']),
+    /one of --suite or --cases is required/,
+  );
   assert.throws(
     () =>
       parseCliArgs([

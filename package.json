@@ -3,7 +3,21 @@
   "version": "0.1.0",
   "description": "A portable, deterministic evaluation harness for coding-agent CLIs",
   "type": "module",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xuxyyy/coding-agent-eval-harness.git"
+  },
+  "homepage": "https://github.com/Xuxyyy/coding-agent-eval-harness#readme",
+  "bugs": {
+    "url": "https://github.com/Xuxyyy/coding-agent-eval-harness/issues"
+  },
+  "keywords": [
+    "coding-agent",
+    "evaluation",
+    "benchmark",
+    "cli",
+    "ai"
+  ],
   "engines": {
     "node": ">=22"
   },
@@ -60,6 +74,12 @@
     "dist/adapters/shared.d.ts",
     "dist/adapters/types.js",
     "dist/adapters/types.d.ts",
+    "docs/README.md",
+    "docs/foundation-verification.md",
+    "docs/trial-evidence-verification.md",
+    "docs/workflow-cases-verification.md",
+    "docs/stage-1-complete-measurement-verification.md",
+    "docs/portable-v2-verification.md",
     "docs/suite-taxonomy.md",
     "docs/four-module-v1-verification.md",
     "suites/",
@@ -70,21 +90,21 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
     "test": "npm run build && node -e \"require('node:fs').rmSync('.test-dist',{recursive:true,force:true})\" && tsc -p tsconfig.test.json && node --test .test-dist/tests/**/*.test.js",
     "eval": "node dist/cli/index.js",
-    "eval:reasoning:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile reasoning-v1 --model deepseek-v4-flash",
-    "eval:reasoning:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile reasoning-v1 --model gpt-5.6-luna",
-    "eval:reasoning:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile reasoning-v1",
-    "eval:execution:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile execution-v1 --model deepseek-v4-flash",
-    "eval:execution:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile execution-v1 --model gpt-5.6-luna",
-    "eval:execution:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile execution-v1",
-    "eval:recovery:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile recovery-v1 --model deepseek-v4-flash",
-    "eval:recovery:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile recovery-v1 --model gpt-5.6-luna",
-    "eval:recovery:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile recovery-v1",
-    "eval:verification:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile verification-v1 --model deepseek-v4-flash",
-    "eval:verification:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile verification-v1 --model gpt-5.6-luna",
-    "eval:verification:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile verification-v1",
-    "eval:full:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --cases suites/portable --profile full-agent-v1 --model deepseek-v4-flash",
-    "eval:full:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --cases suites/portable --profile full-agent-v1 --model gpt-5.6-luna",
-    "eval:full:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --cases suites/portable --profile full-agent-v1"
+    "eval:reasoning:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --suite portable --profile reasoning-v1",
+    "eval:reasoning:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --suite portable --profile reasoning-v1",
+    "eval:reasoning:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --suite portable --profile reasoning-v1",
+    "eval:execution:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --suite portable --profile execution-v1",
+    "eval:execution:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --suite portable --profile execution-v1",
+    "eval:execution:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --suite portable --profile execution-v1",
+    "eval:recovery:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --suite portable --profile recovery-v1",
+    "eval:recovery:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --suite portable --profile recovery-v1",
+    "eval:recovery:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --suite portable --profile recovery-v1",
+    "eval:verification:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --suite portable --profile verification-v1",
+    "eval:verification:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --suite portable --profile verification-v1",
+    "eval:verification:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --suite portable --profile verification-v1",
+    "eval:full:acc": "npm run --silent build && node dist/cli/index.js run --agent acc --command acc --suite portable --profile full-agent-v1",
+    "eval:full:codex": "npm run --silent build && node dist/cli/index.js run --agent codex --command codex --suite portable --profile full-agent-v1",
+    "eval:full:claude": "npm run --silent build && node dist/cli/index.js run --agent claude --command claude --suite portable --profile full-agent-v1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

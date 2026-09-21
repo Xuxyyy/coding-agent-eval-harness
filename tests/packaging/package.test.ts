@@ -51,8 +51,11 @@ test('packed installation executes four-module profiles and preserves verdict di
     const dryRecord = JSON.parse(dry.stdout)[0] as PackRecord;
     const paths = dryRecord.files.map((file) => file.path).sort();
     for (const required of [
-      'suites/portable/suite.json', 'suites/portable/README.md', 'docs/suite-taxonomy.md',
+      'suites/portable/suite.json', 'suites/portable/README.md', 'docs/README.md', 'docs/suite-taxonomy.md',
       'docs/four-module-v1-verification.md',
+      'docs/foundation-verification.md', 'docs/trial-evidence-verification.md',
+      'docs/workflow-cases-verification.md', 'docs/stage-1-complete-measurement-verification.md',
+      'docs/portable-v2-verification.md',
       'dist/evidence/artifacts.js', 'dist/evidence/artifacts.d.ts',
     ]) assert.equal(paths.includes(required), true, `${required}: package entry missing`);
 
@@ -86,16 +89,14 @@ test('packed installation executes four-module profiles and preserves verdict di
     );
     assert.equal(install.status, 0, install.stderr);
 
-    const packageRoot = join(root, 'node_modules', 'agent-eval-harness');
     const executable = join(root, 'node_modules', '.bin', 'agent-eval');
-    const cases = join(packageRoot, 'suites', 'portable');
     const fake = writeFakeAcc(root);
     assert.equal(existsSync(executable), true);
     assert.equal(command(executable, ['--help'], root).status, 0);
 
     const runProfile = (profileId: string, output: string, mode?: string) => command(
       executable,
-      ['run', '--agent', 'acc', '--command', fake, '--cases', cases, '--profile', profileId, '--output', output],
+      ['run', '--agent', 'acc', '--command', fake, '--suite', 'portable', '--profile', profileId, '--output', output],
       root,
       {...process.env, ...(mode === undefined ? {} : {FAKE_MODE: mode})},
     );
