@@ -150,6 +150,35 @@ Selection verdicts are:
 Every run has a selection verdict. The harness does not calculate a weighted
 overall score.
 
+## Reference evaluation
+
+On September 20, 2026, ACC 0.1.0 using `deepseek-v4-flash` completed one
+repeat of the full 25-case portable suite:
+
+| Cases | Overall passes | Repository passes | Clean trials | Harness errors |
+| ---: | ---: | ---: | ---: | ---: |
+| 25 | 24/25 | 25/25 | 25/25 | 0 |
+
+The full-run miss was limited to the final response for
+`diagnose-root-cause`; its repository and cleanliness checks passed. A later
+focused rerun of that case passed both repository and response grading. The
+focused result is reported separately and is not presented as a 25/25 full
+suite run.
+
+The reference run used:
+
+```sh
+node dist/cli/index.js run \
+  --agent acc \
+  --command acc \
+  --model deepseek-v4-flash \
+  --suite portable \
+  --repeats 1
+```
+
+This is one calibration result, not a leaderboard or a reliability claim.
+Repeated live runs are required to estimate agent reliability.
+
 ## Evidence model
 
 New runs write report schema version 6 and artifact schema version 2. The
