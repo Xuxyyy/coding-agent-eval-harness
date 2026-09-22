@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "regenerate-derived-source",
   "level": "focused",
+  "tier": "challenge",
   "primaryModule": "execution",
   "horizon": "multi-stage",
   "primaryQuality": "instruction-adherence",

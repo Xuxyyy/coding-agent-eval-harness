@@ -62,13 +62,13 @@ export class ProgressDisplay {
     if (event.kind === 'run-start') {
       this.caseWidth = Math.max('case'.length, ...event.caseIds.map((id) => id.length));
       const model = this.options.model ?? 'default';
-      const profile = event.profileId ?? 'ad hoc';
       process.stdout.write([
         'Agent Eval Harness',
         '',
         `  agent    ${this.options.agent}`,
         `  model    ${model}`,
-        `  profile  ${profile}`,
+        `  tier     ${event.tier ?? 'all'}`,
+        `  module   ${event.module ?? 'all'}`,
         `  cases    ${event.caseIds.length}`,
         `  trials   ${event.total}`,
         '',
@@ -99,11 +99,16 @@ export class ProgressDisplay {
       `passes ${result.report.aggregate.passes.count}/${result.report.aggregate.passes.of}   ` +
       `errors ${result.report.aggregate.errors}\n`,
     );
-    if (result.report.profile !== null) {
+    for (const tier of result.report.aggregate.byTier) {
       process.stdout.write(
-        `profile  ${result.report.profile.profileId}   verdict ${result.report.profileVerdict}\n`,
+        `tier     ${tier.tier}   passes ${tier.passes.count}/${tier.passes.of}\n`,
       );
     }
+    process.stdout.write(
+      `selection tier ${result.report.selection.tier ?? 'all'}   ` +
+      `module ${result.report.selection.module ?? 'all'}   ` +
+      `verdict ${result.report.selectionVerdict}\n`,
+    );
     process.stdout.write(`result   ${result.resultPath}\n`);
   }
 

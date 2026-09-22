@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "add-timeout-option-workflow",
   "level": "workflow",
+  "tier": "challenge",
   "primaryModule": "execution",
   "horizon": "long-horizon",
   "primaryQuality": "task-effectiveness",

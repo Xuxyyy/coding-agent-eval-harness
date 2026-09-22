@@ -7,7 +7,7 @@ import {gradeTrialBehavior} from '../../src/graders/grade-trial-behavior.js';
 import {loadCase} from '../../src/suites/cases.js';
 
 const definition = loadCase(resolve('suites/portable/accurate-change-handoff'));
-if (definition.schemaVersion !== 4) throw new Error('expected version 4 case');
+if (definition.schemaVersion !== 5) throw new Error('expected version 5 case');
 
 test('handoff case accepts factual phrasing and rejects false or incomplete reports', () => {
   const fixture = createFixture(definition);

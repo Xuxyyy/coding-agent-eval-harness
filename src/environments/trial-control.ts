@@ -18,6 +18,7 @@ import type {
   MeasurementCaseDefinition,
   ModuleCaseDefinition,
   ProbeOutcome,
+  TieredCaseDefinition,
 } from '../types/index.js';
 
 export const CONTROL_PREFIX = 'agent-eval-control-';
@@ -52,7 +53,7 @@ const timer=setInterval(()=>{if(!existsSync(response)){if(Date.now()-started>600
 }
 
 export async function createTrialControl(
-  definition: MeasurementCaseDefinition | ModuleCaseDefinition,
+  definition: MeasurementCaseDefinition | ModuleCaseDefinition | TieredCaseDefinition,
   workspaceRoot: string,
 ): Promise<TrialControl> {
   if (definition.trialChecks.controlledEvents.length === 0) {

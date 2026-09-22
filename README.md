@@ -16,7 +16,13 @@ claim of complete agent quality.
 
 ## What it measures
 
-The 25 portable cases are organized into four agent-builder modules:
+The 25 portable cases use two independent dimensions. The tier describes the
+expected difficulty:
+
+- `baseline`: 13 capabilities a coding agent is expected to pass.
+- `challenge`: 12 harder cases used to expose limits and diagnose failures.
+
+The module describes the kind of capability:
 
 - `reasoning`: understand the active code path, contract, and correct action.
 - `execution`: make a complete repository change with controlled scope.
@@ -63,7 +69,7 @@ network service, or paid API.
 
 ## Run the portable suite
 
-Build the CLI, then choose one module or the complete profile:
+Build the CLI, then select a tier, a module, both, or neither:
 
 ```sh
 npm run build
@@ -71,32 +77,31 @@ node dist/cli/index.js run \
   --agent acc \
   --command "$(command -v acc)" \
   --suite portable \
-  --profile reasoning-v1
+  --tier baseline \
+  --module reasoning
 ```
 
-The profile IDs are:
+With no filters, the CLI runs all 25 cases. One filter selects every matching
+case. Both filters select their intersection. `--repeats` works with filters;
+`--case` does not.
 
-- `reasoning-v1`: 7 cases
-- `execution-v1`: 11 cases
-- `recovery-v1`: 3 cases
-- `verification-v1`: 4 cases
-- `full-agent-v1`: all 25 cases in module order
-
-Convenience scripts are available for every built-in adapter and profile:
+Convenience scripts are available for every built-in adapter and tier:
 
 ```sh
-npm run -s eval:reasoning:acc
-npm run -s eval:execution:codex
-npm run -s eval:recovery:claude
+npm run -s eval:baseline:acc
+npm run -s eval:challenge:codex
 npm run -s eval:full:acc
 ```
+
+Module-specific selections use the CLI flags directly.
 
 These commands use the agent CLI's configured default model. Use `--model`
 with the main CLI when an exact model is part of the evaluation identity.
 Live runs use the authentication already available to the selected CLI and may
 consume provider credit.
 
-For an ad hoc selection, use `--case` and `--repeats` instead of a profile:
+For an ad hoc selection, use `--case` and `--repeats` without tier or module
+filters:
 
 ```sh
 node dist/cli/index.js run \
@@ -119,7 +124,7 @@ The CLI prints progress and a compact summary:
 case                         repeat  status  solved  clean  terminal   elapsed_ms  total_tokens
 create-to-spec               1       pass    true    true   completed  8200        14000
 ...
-profile  reasoning-v1  verdict met
+selection  tier baseline  module reasoning  verdict met
 result   <path>/results/<timestamp>-acc.jsonl
 ```
 
@@ -132,23 +137,23 @@ node dist/cli/index.js inspect \
   --repeat 1
 ```
 
-Inspection shows identity, module, horizon, disposition, terminal status,
+Inspection shows identity, tier, module, horizon, disposition, terminal status,
 final message, normalized public events, Git diff, repository checks, behavior
 checks, cleanup, and artifact paths.
 
-Profile verdicts are:
+Selection verdicts are:
 
 - `met`: every required trial passed.
 - `not_met`: all evidence exists and at least one required trial failed.
 - `incomplete`: a required trial is missing or has an evidence error.
 
-Ad hoc runs have no profile verdict. The harness does not calculate a weighted
+Every run has a selection verdict. The harness does not calculate a weighted
 overall score.
 
 ## Evidence model
 
-New runs write report schema version 5 and artifact schema version 2. The
-reader also accepts historical report versions 2 through 4.
+New runs write report schema version 6 and artifact schema version 2. The
+reader also accepts historical report versions 2 through 5.
 
 Each immutable trial bundle contains:
 
@@ -183,7 +188,7 @@ unavailable result.
 - Credentials are not copied. Adapters use the selected CLI's existing local
   authentication.
 - Live agent runs are intentionally excluded from tests and CI.
-- One trial per bundled profile case does not establish reliability.
+- One trial per selected case does not establish reliability.
 - Long-horizon means connected work within one CLI run. Cross-session pause
   and resume are not covered.
 - Grading does not require a product-specific tool name or tool-call count.
@@ -197,12 +202,13 @@ npm pack --dry-run --json
 ```
 
 The package test installs the generated archive in a temporary consumer,
-executes every profile through the public CLI, verifies verdict distinctions,
-and checks that private or temporary files are excluded.
+executes baseline, challenge, full, and combined selections through the public
+CLI, verifies verdict distinctions, and checks that private or temporary files
+are excluded.
 
 See the [documentation index](docs/README.md) for the current design references
 and historical verification records. The latest offline acceptance evidence is
-the [four-module verification record](docs/four-module-v1-verification.md).
+the [two-dimensional suite verification record](docs/two-dimensional-suite-verification.md).
 
 ## License
 

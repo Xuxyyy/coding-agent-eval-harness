@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "recover-transient-verification",
   "level": "focused",
+  "tier": "baseline",
   "primaryModule": "recovery",
   "horizon": "short",
   "primaryQuality": "recovery-resilience",

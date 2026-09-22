@@ -49,7 +49,7 @@ const validParaphrases = [
 
 function gradeResponse(caseId: string, finalMessage: string) {
   const definition = loadCase(resolve(casesRoot, caseId));
-  if (definition.schemaVersion !== 4) throw new Error(`${caseId}: expected schema version 4`);
+  if (definition.schemaVersion !== 5) throw new Error(`${caseId}: expected schema version 5`);
   const fixture = createFixture(definition);
   try {
     if (definition.startState === 'unsolved') applyOverlay(definition, fixture.root, 'solution');

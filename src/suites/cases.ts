@@ -6,10 +6,13 @@ import {
   CASE_MODULES,
   CASE_QUALITIES,
   CASE_SCHEMA_VERSION,
+  CASE_TIERS,
   EXPECTED_DISPOSITIONS,
   LEGACY_CASE_SCHEMA_VERSION,
   LEGACY_SUITE_SCHEMA_VERSION,
   MEASUREMENT_CASE_SCHEMA_VERSION,
+  MODULE_CASE_SCHEMA_VERSION,
+  MODULE_SUITE_SCHEMA_VERSION,
   PREVIOUS_CASE_SCHEMA_VERSION,
   PROBE_MATCHES,
   PROBE_OUTCOMES,
@@ -28,6 +31,7 @@ import {
   type TrialChecks,
   type TrialEvidenceFixture,
   type SuiteDefinition,
+  type TieredCaseDefinition,
   type VersionedCaseDefinition,
 } from '../types/index.js';
 
@@ -105,7 +109,7 @@ function parseLegacyCheck(where: string, source: Record<string, unknown>): Legac
   throw new CaseError(`${where}.kind`, 'must be exists, exit0, or unchanged');
 }
 
-function parseCheck(where: string, raw: unknown, version: 1 | 2 | 3 | 4): Check {
+function parseCheck(where: string, raw: unknown, version: 1 | 2 | 3 | 4 | 5): Check {
   const source = record(where, raw);
   if (version === LEGACY_CASE_SCHEMA_VERSION) return parseLegacyCheck(where, source);
   const kind = source.kind;
@@ -152,7 +156,7 @@ function parseTask(source: Record<string, unknown>, where: string) {
   };
 }
 
-function parseGrade(source: Record<string, unknown>, where: string, version: 1 | 2 | 3 | 4) {
+function parseGrade(source: Record<string, unknown>, where: string, version: 1 | 2 | 3 | 4 | 5) {
   const grade = record(`${where}.grade`, source.grade);
   exactKeys(`${where}.grade`, grade, ['allowedWrites', 'checks']);
   if (!Array.isArray(grade.allowedWrites)) {
@@ -198,20 +202,25 @@ export function parseCase(raw: unknown, where: string, dir: string): CaseDefinit
   if (
     source.schemaVersion !== PREVIOUS_CASE_SCHEMA_VERSION &&
     source.schemaVersion !== MEASUREMENT_CASE_SCHEMA_VERSION &&
+    source.schemaVersion !== MODULE_CASE_SCHEMA_VERSION &&
     source.schemaVersion !== CASE_SCHEMA_VERSION
   ) {
     throw new CaseError(
       `${where}.schemaVersion`,
-      `must be ${LEGACY_CASE_SCHEMA_VERSION}, ${PREVIOUS_CASE_SCHEMA_VERSION}, ${MEASUREMENT_CASE_SCHEMA_VERSION}, or ${CASE_SCHEMA_VERSION}`,
+      `must be ${LEGACY_CASE_SCHEMA_VERSION}, ${PREVIOUS_CASE_SCHEMA_VERSION}, ${MEASUREMENT_CASE_SCHEMA_VERSION}, ${MODULE_CASE_SCHEMA_VERSION}, or ${CASE_SCHEMA_VERSION}`,
     );
   }
   const isMeasurement = source.schemaVersion === MEASUREMENT_CASE_SCHEMA_VERSION ||
+    source.schemaVersion === MODULE_CASE_SCHEMA_VERSION ||
     source.schemaVersion === CASE_SCHEMA_VERSION;
-  const isModule = source.schemaVersion === CASE_SCHEMA_VERSION;
+  const isModule = source.schemaVersion === MODULE_CASE_SCHEMA_VERSION ||
+    source.schemaVersion === CASE_SCHEMA_VERSION;
+  const isTiered = source.schemaVersion === CASE_SCHEMA_VERSION;
   exactKeys(where, source, [
     'schemaVersion',
     'id',
     'level',
+    ...(isTiered ? ['tier'] : []),
     ...(isModule ? ['primaryModule', 'horizon'] : []),
     'primaryQuality',
     'supportingQualities',
@@ -256,7 +265,9 @@ export function parseCase(raw: unknown, where: string, dir: string): CaseDefinit
   );
   const measurementVersion = source.schemaVersion === MEASUREMENT_CASE_SCHEMA_VERSION
     ? MEASUREMENT_CASE_SCHEMA_VERSION
-    : CASE_SCHEMA_VERSION;
+    : source.schemaVersion === MODULE_CASE_SCHEMA_VERSION
+      ? MODULE_CASE_SCHEMA_VERSION
+      : CASE_SCHEMA_VERSION;
   const trialChecks = parseTrialChecks(source.trialChecks, `${where}.trialChecks`, measurementVersion);
   if (expectedDisposition !== 'implemented' && trialChecks.controlledEvents.length > 0) {
     throw new CaseError(
@@ -275,12 +286,18 @@ export function parseCase(raw: unknown, where: string, dir: string): CaseDefinit
     },
   };
   if (!isModule) return measurement as MeasurementCaseDefinition;
-  return {
+  const moduleCase = {
     ...measurement,
-    schemaVersion: CASE_SCHEMA_VERSION,
+    schemaVersion: source.schemaVersion,
     primaryModule: controlled(`${where}.primaryModule`, source.primaryModule, CASE_MODULES),
     horizon: controlled(`${where}.horizon`, source.horizon, CASE_HORIZONS),
-  } as ModuleCaseDefinition;
+  };
+  if (!isTiered) return moduleCase as ModuleCaseDefinition;
+  return {
+    ...moduleCase,
+    schemaVersion: CASE_SCHEMA_VERSION,
+    tier: controlled(`${where}.tier`, source.tier, CASE_TIERS),
+  } as TieredCaseDefinition;
 }
 
 function regexp(where: string, value: unknown): string {
@@ -296,7 +313,10 @@ function regexp(where: string, value: unknown): string {
 function parseTrialChecks(
   raw: unknown,
   where: string,
-  version: typeof MEASUREMENT_CASE_SCHEMA_VERSION | typeof CASE_SCHEMA_VERSION,
+  version:
+    | typeof MEASUREMENT_CASE_SCHEMA_VERSION
+    | typeof MODULE_CASE_SCHEMA_VERSION
+    | typeof CASE_SCHEMA_VERSION,
 ): TrialChecks {
   const source = record(where, raw);
   exactKeys(where, source, ['finalResponse', 'controlledEvents']);
@@ -434,6 +454,7 @@ export function loadCase(caseDir: string): CaseDefinition {
   const definition = parseCase(readJson(manifest), manifest, absolute);
   if (
     definition.schemaVersion === MEASUREMENT_CASE_SCHEMA_VERSION ||
+    definition.schemaVersion === MODULE_CASE_SCHEMA_VERSION ||
     definition.schemaVersion === CASE_SCHEMA_VERSION
   ) {
     requireDirectory(absolute, 'evidence');
@@ -476,21 +497,55 @@ export function parseSuite(
   cases: readonly CaseDefinition[],
 ): SuiteDefinition {
   const source = record(where, raw);
-  exactKeys(where, source, ['schemaVersion', 'id', 'profiles']);
   if (
     source.schemaVersion !== LEGACY_SUITE_SCHEMA_VERSION &&
+    source.schemaVersion !== MODULE_SUITE_SCHEMA_VERSION &&
     source.schemaVersion !== SUITE_SCHEMA_VERSION
   ) {
     throw new CaseError(
       `${where}.schemaVersion`,
-      `must be ${LEGACY_SUITE_SCHEMA_VERSION} or ${SUITE_SCHEMA_VERSION}`,
+      `must be ${LEGACY_SUITE_SCHEMA_VERSION}, ${MODULE_SUITE_SCHEMA_VERSION}, or ${SUITE_SCHEMA_VERSION}`,
     );
   }
-  const isModuleSuite = source.schemaVersion === SUITE_SCHEMA_VERSION;
+  const byId = new Map(cases.map((item) => [item.id, item]));
+  if (source.schemaVersion === SUITE_SCHEMA_VERSION) {
+    exactKeys(where, source, ['schemaVersion', 'id', 'caseOrder']);
+    if (!Array.isArray(source.caseOrder) || source.caseOrder.length === 0) {
+      throw new CaseError(`${where}.caseOrder`, 'must be a non-empty array');
+    }
+    const caseOrder = source.caseOrder.map((caseId, index) =>
+      identifier(`${where}.caseOrder[${index}]`, caseId));
+    if (new Set(caseOrder).size !== caseOrder.length) {
+      throw new CaseError(`${where}.caseOrder`, 'must not contain duplicates');
+    }
+    for (const caseId of caseOrder) {
+      if (!byId.has(caseId)) {
+        throw new CaseError(`${where}.caseOrder`, `references unknown case: ${caseId}`);
+      }
+    }
+    if (
+      cases.some((definition) => definition.schemaVersion !== CASE_SCHEMA_VERSION) ||
+      caseOrder.length !== cases.length ||
+      cases.some((definition) => !caseOrder.includes(definition.id))
+    ) {
+      throw new CaseError(
+        `${where}.caseOrder`,
+        `must contain every version ${CASE_SCHEMA_VERSION} case exactly once`,
+      );
+    }
+    return {
+      schemaVersion: SUITE_SCHEMA_VERSION,
+      id: identifier(`${where}.id`, source.id),
+      caseOrder,
+      dir: resolve(dir),
+    };
+  }
+
+  exactKeys(where, source, ['schemaVersion', 'id', 'profiles']);
+  const isModuleSuite = source.schemaVersion === MODULE_SUITE_SCHEMA_VERSION;
   if (!Array.isArray(source.profiles) || source.profiles.length === 0) {
     throw new CaseError(`${where}.profiles`, 'must be a non-empty array');
   }
-  const byId = new Map(cases.map((item) => [item.id, item]));
   const profiles = source.profiles.map((rawProfile, index) => {
     const profileWhere = `${where}.profiles[${index}]`;
     const profile = record(profileWhere, rawProfile);
@@ -526,10 +581,13 @@ export function parseSuite(
     if (module !== null && module !== 'all') {
       for (const caseId of caseIds) {
         const definition = byId.get(caseId)!;
-        if (definition.schemaVersion !== CASE_SCHEMA_VERSION || definition.primaryModule !== module) {
+        if (
+          definition.schemaVersion !== MODULE_CASE_SCHEMA_VERSION ||
+          definition.primaryModule !== module
+        ) {
           throw new CaseError(
             `${profileWhere}.caseIds`,
-            `${caseId} must be a version ${CASE_SCHEMA_VERSION} ${module} case`,
+            `${caseId} must be a version ${MODULE_CASE_SCHEMA_VERSION} ${module} case`,
           );
         }
       }
@@ -557,8 +615,11 @@ export function parseSuite(
     if (allProfiles.length !== 1 || profiles.length !== CASE_MODULES.length + 1) {
       throw new CaseError(`${where}.profiles`, 'must contain four module profiles and one all profile');
     }
-    if (cases.some((definition) => definition.schemaVersion !== CASE_SCHEMA_VERSION)) {
-      throw new CaseError(`${where}.profiles`, `version ${SUITE_SCHEMA_VERSION} suites require version ${CASE_SCHEMA_VERSION} cases`);
+    if (cases.some((definition) => definition.schemaVersion !== MODULE_CASE_SCHEMA_VERSION)) {
+      throw new CaseError(
+        `${where}.profiles`,
+        `version ${MODULE_SUITE_SCHEMA_VERSION} suites require version ${MODULE_CASE_SCHEMA_VERSION} cases`,
+      );
     }
     const expectedAll = moduleProfiles.flatMap((profile) => profile.caseIds);
     if (
@@ -573,7 +634,9 @@ export function parseSuite(
     }
   }
   return {
-    schemaVersion: source.schemaVersion,
+    schemaVersion: source.schemaVersion as
+      | typeof LEGACY_SUITE_SCHEMA_VERSION
+      | typeof MODULE_SUITE_SCHEMA_VERSION,
     id: identifier(`${where}.id`, source.id),
     profiles,
     dir: resolve(dir),

@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "accurate-change-handoff",
   "level": "focused",
+  "tier": "baseline",
   "primaryModule": "verification",
   "horizon": "short",
   "primaryQuality": "communication-handoff",

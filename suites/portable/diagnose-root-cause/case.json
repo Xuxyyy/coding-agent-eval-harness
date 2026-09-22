@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "diagnose-root-cause",
   "level": "focused",
+  "tier": "baseline",
   "primaryModule": "reasoning",
   "horizon": "short",
   "primaryQuality": "communication-handoff",

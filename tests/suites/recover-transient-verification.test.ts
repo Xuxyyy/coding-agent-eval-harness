@@ -8,7 +8,7 @@ import {gradeTrialBehavior} from '../../src/graders/grade-trial-behavior.js';
 import {loadCase} from '../../src/suites/cases.js';
 
 const definition = loadCase(resolve('suites/portable/recover-transient-verification'));
-if (definition.schemaVersion !== 4) throw new Error('expected version 4 case');
+if (definition.schemaVersion !== 5) throw new Error('expected version 5 case');
 
 test('recovery case admits the solution and rejects a skipped retry', () => {
   const initial = createFixture(definition);

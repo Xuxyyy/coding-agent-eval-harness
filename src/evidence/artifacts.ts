@@ -18,6 +18,7 @@ import {
   LEGACY_REPORT_SCHEMA_VERSION,
   LEGACY_TRIAL_ARTIFACT_SCHEMA_VERSION,
   MEASUREMENT_REPORT_SCHEMA_VERSION,
+  MODULE_REPORT_SCHEMA_VERSION,
   REPORT_SCHEMA_VERSION,
   STRUCTURED_REPORT_SCHEMA_VERSION,
   TRIAL_ARTIFACT_SCHEMA_VERSION,
@@ -43,6 +44,7 @@ export type ParsedResultFile = {
     | typeof LEGACY_REPORT_SCHEMA_VERSION
     | typeof STRUCTURED_REPORT_SCHEMA_VERSION
     | typeof MEASUREMENT_REPORT_SCHEMA_VERSION
+    | typeof MODULE_REPORT_SCHEMA_VERSION
     | typeof REPORT_SCHEMA_VERSION;
   trials: JsonObject[];
   report: JsonObject;
@@ -78,6 +80,12 @@ function string(value: unknown, label: string): string {
 function nullableString(value: unknown, label: string): string | null {
   if (value === null) return null;
   return string(value, label);
+}
+
+function nullableText(value: unknown, label: string): string | null {
+  if (value === null) return null;
+  if (typeof value !== 'string') throw new Error(`${label} must be a string or null`);
+  return value;
 }
 
 function integer(value: unknown, label: string, minimum = 0): number {
@@ -347,6 +355,7 @@ function validateTrialRecord(
   index: number,
   measurement: boolean,
   modules: boolean,
+  tiers: boolean,
 ): JsonObject {
   const trial = object(value, `record ${index}`);
   if (trial.kind !== 'trial') throw new Error(`record ${index} must be a trial`);
@@ -355,6 +364,9 @@ function validateTrialRecord(
   string(trial.adapter, `record ${index}.adapter`);
   nullableString(trial.requestedModel, `record ${index}.requestedModel`);
   if (trial.level !== null) oneOf(trial.level, ['focused', 'workflow'], `record ${index}.level`);
+  if (tiers && trial.tier !== null) {
+    oneOf(trial.tier, ['baseline', 'challenge'], `record ${index}.tier`);
+  }
   if (modules) {
     if (trial.primaryModule !== null) {
       oneOf(
@@ -423,6 +435,7 @@ export function readResultFile(resultPath: string): ParsedResultFile {
     schemaVersion !== LEGACY_REPORT_SCHEMA_VERSION &&
     schemaVersion !== STRUCTURED_REPORT_SCHEMA_VERSION &&
     schemaVersion !== MEASUREMENT_REPORT_SCHEMA_VERSION &&
+    schemaVersion !== MODULE_REPORT_SCHEMA_VERSION &&
     schemaVersion !== REPORT_SCHEMA_VERSION
   ) {
     throw new Error(`unsupported report schema version: ${schemaVersion}`);
@@ -431,6 +444,7 @@ export function readResultFile(resultPath: string): ParsedResultFile {
   if (
     schemaVersion === STRUCTURED_REPORT_SCHEMA_VERSION ||
     schemaVersion === MEASUREMENT_REPORT_SCHEMA_VERSION ||
+    schemaVersion === MODULE_REPORT_SCHEMA_VERSION ||
     schemaVersion === REPORT_SCHEMA_VERSION
   ) {
     string(report.requestedAdapter, 'report.requestedAdapter');
@@ -440,11 +454,33 @@ export function readResultFile(resultPath: string): ParsedResultFile {
     integer(report.elapsedMs, 'report.elapsedMs');
     string(report.node, 'report.node');
     string(report.platform, 'report.platform');
-    integer(report.repeats, 'report.repeats', 1);
-    stringArray(report.selectedCaseIds, 'report.selectedCaseIds');
-    if (report.profile !== null) object(report.profile, 'report.profile');
-    if (report.profileVerdict !== null) {
-      oneOf(report.profileVerdict, ['met', 'not_met', 'incomplete'], 'report.profileVerdict');
+    if (schemaVersion === REPORT_SCHEMA_VERSION) {
+      const selection = object(report.selection, 'report.selection');
+      if (selection.suiteId !== null) string(selection.suiteId, 'report.selection.suiteId');
+      if (selection.tier !== null) {
+        oneOf(selection.tier, ['baseline', 'challenge'], 'report.selection.tier');
+      }
+      if (selection.module !== null) {
+        oneOf(
+          selection.module,
+          ['reasoning', 'execution', 'recovery', 'verification'],
+          'report.selection.module',
+        );
+      }
+      stringArray(selection.caseIds, 'report.selection.caseIds');
+      integer(selection.repeats, 'report.selection.repeats', 1);
+      oneOf(
+        report.selectionVerdict,
+        ['met', 'not_met', 'incomplete'],
+        'report.selectionVerdict',
+      );
+    } else {
+      integer(report.repeats, 'report.repeats', 1);
+      stringArray(report.selectedCaseIds, 'report.selectedCaseIds');
+      if (report.profile !== null) object(report.profile, 'report.profile');
+      if (report.profileVerdict !== null) {
+        oneOf(report.profileVerdict, ['met', 'not_met', 'incomplete'], 'report.profileVerdict');
+      }
     }
     if (report.maxSecondsCap !== null) integer(report.maxSecondsCap, 'report.maxSecondsCap', 1);
     string(report.suiteContentHash, 'report.suiteContentHash');
@@ -460,8 +496,12 @@ export function readResultFile(resultPath: string): ParsedResultFile {
       string(caseId, 'report.caseSchemaVersions key');
       const parsedVersion = integer(version, `report.caseSchemaVersions.${caseId}`, 1);
       const supported = parsedVersion === 1 || parsedVersion === 2 ||
-        ((schemaVersion === MEASUREMENT_REPORT_SCHEMA_VERSION || schemaVersion === REPORT_SCHEMA_VERSION) && parsedVersion === 3) ||
-        (schemaVersion === REPORT_SCHEMA_VERSION && parsedVersion === 4);
+        ((schemaVersion === MEASUREMENT_REPORT_SCHEMA_VERSION ||
+          schemaVersion === MODULE_REPORT_SCHEMA_VERSION ||
+          schemaVersion === REPORT_SCHEMA_VERSION) && parsedVersion === 3) ||
+        ((schemaVersion === MODULE_REPORT_SCHEMA_VERSION || schemaVersion === REPORT_SCHEMA_VERSION) &&
+          parsedVersion === 4) ||
+        (schemaVersion === REPORT_SCHEMA_VERSION && parsedVersion === 5);
       if (!supported) {
         throw new Error(`report.caseSchemaVersions.${caseId} must be supported by report schema ${schemaVersion}`);
       }
@@ -473,10 +513,17 @@ export function readResultFile(resultPath: string): ParsedResultFile {
     boolean(cleanup.adapterHomes, 'report.cleanup.adapterHomes');
     boolean(cleanup.processes, 'report.cleanup.processes');
     const measurement = schemaVersion === MEASUREMENT_REPORT_SCHEMA_VERSION ||
+      schemaVersion === MODULE_REPORT_SCHEMA_VERSION ||
       schemaVersion === REPORT_SCHEMA_VERSION;
     if (measurement) boolean(cleanup.controls, 'report.cleanup.controls');
     trials.forEach((trial, index) =>
-      validateTrialRecord(trial, index + 1, measurement, schemaVersion === REPORT_SCHEMA_VERSION));
+      validateTrialRecord(
+        trial,
+        index + 1,
+        measurement,
+        schemaVersion === MODULE_REPORT_SCHEMA_VERSION || schemaVersion === REPORT_SCHEMA_VERSION,
+        schemaVersion === REPORT_SCHEMA_VERSION,
+      ));
   } else {
     for (const [index, trialValue] of trials.entries()) {
       const trial = object(trialValue, `record ${index + 1}`);
@@ -615,7 +662,7 @@ export function readTrialArtifact(
   ) {
     throw new Error('artifact outcome does not match selected trial');
   }
-  nullableString(value.finalMessage, 'artifact.finalMessage');
+  nullableText(value.finalMessage, 'artifact.finalMessage');
   validateUsage(value.usage, 'artifact.usage');
   integer(value.elapsedMs, 'artifact.elapsedMs');
   if (measurement) {

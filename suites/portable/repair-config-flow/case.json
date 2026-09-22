@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "repair-config-flow",
   "level": "workflow",
+  "tier": "challenge",
   "primaryModule": "reasoning",
   "horizon": "multi-stage",
   "primaryQuality": "repository-understanding",

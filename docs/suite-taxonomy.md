@@ -1,21 +1,25 @@
-# Four-module portable suite taxonomy
+# Two-dimensional portable suite taxonomy
 
-The portable suite is organized from an agent-builder's point of view. A user
-can run the module they are diagnosing instead of selecting cases by fixture
-size.
+The portable suite separates expected difficulty from capability type. These
+are independent dimensions and can be selected alone or together.
 
 ## Selection model
 
 ```text
-portable suite
-  |-- reasoning-v1
-  |-- execution-v1
-  |-- recovery-v1
-  |-- verification-v1
-  `-- full-agent-v1 = all four modules in that order
+portable suite (25)
+  |-- tier: baseline (13) | challenge (12)
+  `-- module: reasoning | execution | recovery | verification
+
+selection = optional tier filter AND optional module filter
 ```
 
-Each case belongs to exactly one primary module:
+With no filters, all 25 cases run. A single filter selects all matching cases.
+Two filters select their intersection. Every built-in intersection is nonempty.
+
+| Tier | Meaning |
+| --- | --- |
+| `baseline` | Core behavior a coding agent is expected to pass. |
+| `challenge` | Harder work used to expose limits and diagnose failure causes. |
 
 | Module | Question |
 | --- | --- |
@@ -24,83 +28,48 @@ Each case belongs to exactly one primary module:
 | `recovery` | Did it respond correctly to tool failure or partially completed work? |
 | `verification` | Did it collect enough evidence and report only supported facts? |
 
-The profile tells the harness what to run. It is not a score dimension. All
-five profiles use one trial per case and make no reliability claim.
+## Case matrix
 
-| Profile | Module | Cases | Repeats |
-| --- | --- | ---: | ---: |
-| `reasoning-v1` | reasoning | 7 | 1 |
-| `execution-v1` | execution | 11 | 1 |
-| `recovery-v1` | recovery | 3 | 1 |
-| `verification-v1` | verification | 4 | 1 |
-| `full-agent-v1` | all | 25 | 1 |
+| Tier | Module | Cases |
+| --- | --- | --- |
+| baseline | reasoning | `already-correct-no-op`, `block-on-missing-contract`, `diagnose-root-cause` |
+| baseline | execution | `create-to-spec`, `fix-failing-test`, `preserve-user-wip`, `follow-repository-instructions`, `remove-deprecated-module`, `resolve-conflict-preserving-behavior` |
+| baseline | recovery | `recover-transient-verification`, `fallback-after-tool-failure` |
+| baseline | verification | `add-regression-coverage`, `accurate-change-handoff` |
+| challenge | reasoning | `repair-stale-test-contract`, `trace-actual-runtime-path`, `repair-config-flow`, `migrate-cross-package-api` |
+| challenge | execution | `regenerate-derived-source`, `preserve-header-contract`, `refactor-shared-validation`, `repair-concurrent-cache`, `add-timeout-option-workflow` |
+| challenge | recovery | `resume-partial-migration` |
+| challenge | verification | `restore-cli-error-contract`, `verify-cross-layer-fix` |
 
-Old bundled profile IDs are removed. Historical result schemas remain
-inspectable, but old IDs are not accepted as aliases for current runs.
+The suite manifest fixes stable order. It lists the 13 baseline cases first,
+then the 12 challenge cases, using the row order above.
 
-## Separate dimensions
+## Other case metadata
 
-Module, level, horizon, quality, disposition, and safety answer different
-questions. They must not be collapsed into one taxonomy.
+Tier and module do not replace the existing diagnostic dimensions:
 
-- `level` describes case shape. `focused` isolates a narrow situation.
-  `workflow` crosses connected repository boundaries.
-- `horizon` describes the dependency chain within one CLI run. Values are
-  `short`, `multi-stage`, and `long-horizon`.
-- `primaryQuality` identifies the main detailed skill being measured.
-  Supporting qualities may overlap modules.
-- `expectedDisposition` is `implemented`, `no-change`, or `blocked`.
-- safety is cross-cutting. Exact write scopes and unchanged checks protect user
-  work, instructions, tests, generators, metadata, and unrelated files.
+- `level`: `focused` or `workflow`, describing fixture shape.
+- `horizon`: `short`, `multi-stage`, or `long-horizon`, describing the
+  dependency chain inside one CLI run.
+- `primaryQuality` and supporting qualities: the detailed skills measured.
+- `expectedDisposition`: `implemented`, `no-change`, or `blocked`.
+- safety: exact write scopes and unchanged checks across every case.
 
-`focused` and `workflow` therefore remain case metadata. They are not selectable
-bundled profiles.
+## Boundaries
 
-## Current case matrix
-
-| Module | Case | Level | Horizon | Primary quality | Disposition |
-| --- | --- | --- | --- | --- | --- |
-| reasoning | `already-correct-no-op` | focused | short | judgment-autonomy | no-change |
-| reasoning | `block-on-missing-contract` | focused | short | judgment-autonomy | blocked |
-| reasoning | `diagnose-root-cause` | focused | short | communication-handoff | no-change |
-| reasoning | `repair-stale-test-contract` | focused | short | judgment-autonomy | implemented |
-| reasoning | `trace-actual-runtime-path` | workflow | multi-stage | repository-understanding | implemented |
-| reasoning | `repair-config-flow` | workflow | multi-stage | repository-understanding | implemented |
-| reasoning | `migrate-cross-package-api` | workflow | multi-stage | repository-understanding | implemented |
-| execution | `create-to-spec` | focused | short | task-effectiveness | implemented |
-| execution | `fix-failing-test` | focused | short | task-effectiveness | implemented |
-| execution | `preserve-user-wip` | focused | short | user-work-protection | implemented |
-| execution | `follow-repository-instructions` | focused | short | instruction-adherence | implemented |
-| execution | `remove-deprecated-module` | focused | short | user-work-protection | implemented |
-| execution | `resolve-conflict-preserving-behavior` | focused | short | user-work-protection | implemented |
-| execution | `regenerate-derived-source` | focused | multi-stage | instruction-adherence | implemented |
-| execution | `preserve-header-contract` | workflow | multi-stage | change-discipline | implemented |
-| execution | `refactor-shared-validation` | workflow | multi-stage | change-discipline | implemented |
-| execution | `repair-concurrent-cache` | workflow | multi-stage | task-effectiveness | implemented |
-| execution | `add-timeout-option-workflow` | workflow | long-horizon | task-effectiveness | implemented |
-| recovery | `recover-transient-verification` | focused | short | recovery-resilience | implemented |
-| recovery | `fallback-after-tool-failure` | focused | multi-stage | recovery-resilience | implemented |
-| recovery | `resume-partial-migration` | workflow | multi-stage | recovery-resilience | implemented |
-| verification | `add-regression-coverage` | focused | short | verification-quality | implemented |
-| verification | `accurate-change-handoff` | focused | short | communication-handoff | implemented |
-| verification | `restore-cli-error-contract` | workflow | multi-stage | verification-quality | implemented |
-| verification | `verify-cross-layer-fix` | workflow | multi-stage | verification-quality | implemented |
-
-Profile order is stable. Within a module, cases move from lower dependency
-complexity to higher dependency complexity.
+This classification changes only metadata and selection. The 25 prompts,
+fixtures, solutions, counterexamples, evidence files, and graders are unchanged.
+The suite does not yet cover cross-session restore, conversation restore, or
+MCP behavior. `long-horizon` means connected work within one CLI run.
 
 ## Admission rules
 
 A new portable case must:
 
-1. Declare exactly one primary module, one level, and one horizon.
+1. Declare exactly one tier, one primary module, one level, and one horizon.
 2. Include workspace, solution, plausible counterexample, known-good evidence,
    and known-bad evidence.
 3. Pass initial-workspace, solution, counterexample, and evidence admission.
 4. Use exact allowed writes and protect unrelated repository material.
-5. Grade tool use through facts, changes, and verification evidence rather than
-   a product-specific tool name or call count.
-6. Join exactly one module profile and appear exactly once in the full profile.
-
-Long-horizon currently means a substantial dependency chain inside one public
-CLI run. Cross-session pause and resume are outside this version.
+5. Grade observable facts rather than product-specific tool names or counts.
+6. Appear exactly once in the ordered suite manifest.

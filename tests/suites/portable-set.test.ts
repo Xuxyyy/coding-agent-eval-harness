@@ -6,7 +6,14 @@ import {loadCases, loadSuite} from '../../src/suites/cases.js';
 import {applyOverlay, createFixture, removeFixture} from '../../src/environments/fixture.js';
 import {gradeCase} from '../../src/graders/grade-case.js';
 import {gradeTrialBehavior} from '../../src/graders/grade-trial-behavior.js';
-import type {CaseHorizon, CaseModule, CaseQuality, StartState} from '../../src/types/index.js';
+import {selectCases} from '../../src/engine/select-cases.js';
+import type {
+  CaseHorizon,
+  CaseModule,
+  CaseQuality,
+  CaseTier,
+  StartState,
+} from '../../src/types/index.js';
 
 const suiteRoot = resolve('suites/portable');
 
@@ -181,6 +188,22 @@ const moduleCases: Record<CaseModule, string[]> = {
   ],
 };
 
+const tierCases: Record<CaseTier, string[]> = {
+  baseline: [
+    'already-correct-no-op', 'block-on-missing-contract', 'diagnose-root-cause',
+    'create-to-spec', 'fix-failing-test', 'preserve-user-wip',
+    'follow-repository-instructions', 'remove-deprecated-module',
+    'resolve-conflict-preserving-behavior', 'recover-transient-verification',
+    'fallback-after-tool-failure', 'add-regression-coverage', 'accurate-change-handoff',
+  ],
+  challenge: [
+    'repair-stale-test-contract', 'trace-actual-runtime-path', 'repair-config-flow',
+    'migrate-cross-package-api', 'regenerate-derived-source', 'preserve-header-contract',
+    'refactor-shared-validation', 'repair-concurrent-cache', 'add-timeout-option-workflow',
+    'resume-partial-migration', 'restore-cli-error-contract', 'verify-cross-layer-fix',
+  ],
+};
+
 const horizons: Record<CaseHorizon, string[]> = {
   short: [
     'already-correct-no-op', 'block-on-missing-contract', 'diagnose-root-cause',
@@ -198,14 +221,14 @@ const horizons: Record<CaseHorizon, string[]> = {
   'long-horizon': ['add-timeout-option-workflow'],
 };
 
-test('portable inventory and profiles match the reviewed twenty-five-case contract', () => {
+test('portable inventory and two-dimensional classification match the reviewed contract', () => {
   const cases = loadCases(suiteRoot);
   assert.deepEqual(cases.map((item) => item.id), expected);
-  assert.equal(cases.filter((item) => item.schemaVersion === 4 && item.level === 'focused').length, 15);
-  assert.equal(cases.filter((item) => item.schemaVersion === 4 && item.level === 'workflow').length, 10);
+  assert.equal(cases.filter((item) => item.schemaVersion === 5 && item.level === 'focused').length, 15);
+  assert.equal(cases.filter((item) => item.schemaVersion === 5 && item.level === 'workflow').length, 10);
   for (const definition of cases) {
-    assert.equal(definition.schemaVersion, 4, `${definition.id}: must use the module schema`);
-    if (definition.schemaVersion !== 4) continue;
+    assert.equal(definition.schemaVersion, 5, `${definition.id}: must use the tiered schema`);
+    if (definition.schemaVersion !== 5) continue;
     assert.equal(
       definition.level,
       [
@@ -232,6 +255,10 @@ test('portable inventory and profiles match the reviewed twenty-five-case contra
       matrix[definition.id],
     );
     assert.equal(
+      definition.tier,
+      Object.entries(tierCases).find(([, ids]) => ids.includes(definition.id))?.[0],
+    );
+    assert.equal(
       definition.primaryModule,
       Object.entries(moduleCases).find(([, ids]) => ids.includes(definition.id))?.[0],
     );
@@ -249,21 +276,41 @@ test('portable inventory and profiles match the reviewed twenty-five-case contra
 
   const suite = loadSuite(suiteRoot, cases);
   assert.equal(suite.id, 'portable');
-  assert.equal(suite.schemaVersion, 2);
-  assert.deepEqual(
-    suite.profiles,
-    [
-      ...(['reasoning', 'execution', 'recovery', 'verification'] as const).map((module) => ({
-        id: `${module}-v1`, module, caseIds: moduleCases[module], repeats: 1,
-      })),
-      {
-        id: 'full-agent-v1', module: 'all',
-        caseIds: (['reasoning', 'execution', 'recovery', 'verification'] as const)
-          .flatMap((module) => moduleCases[module]),
-        repeats: 1,
-      },
-    ],
-  );
+  assert.equal(suite.schemaVersion, 3);
+  if (suite.schemaVersion !== 3) assert.fail('expected ordered suite');
+  assert.deepEqual(suite.caseOrder, [...tierCases.baseline, ...tierCases.challenge]);
+});
+
+test('portable selection supports every tier and module combination in stable order', () => {
+  const ordered = [...tierCases.baseline, ...tierCases.challenge];
+  const definitions = loadCases(suiteRoot);
+  const metadata = new Map(definitions.map((definition) => [definition.id, definition]));
+  assert.deepEqual(selectCases({casesDir: suiteRoot}).selection.caseIds, ordered);
+
+  for (const tier of ['baseline', 'challenge'] as const) {
+    const tierOnly = selectCases({casesDir: suiteRoot, tier, repeats: 2});
+    assert.deepEqual(tierOnly.selection.caseIds, tierCases[tier]);
+    assert.equal(tierOnly.repeats, 2);
+    assert.equal(tierOnly.selection.repeats, 2);
+    for (const module of ['reasoning', 'execution', 'recovery', 'verification'] as const) {
+      const expectedIds = ordered.filter((id) => {
+        const definition = metadata.get(id)!;
+        return definition.schemaVersion === 5 &&
+          definition.tier === tier && definition.primaryModule === module;
+      });
+      const selected = selectCases({casesDir: suiteRoot, tier, module});
+      assert.deepEqual(selected.selection.caseIds, expectedIds, `${tier}/${module}`);
+      assert.equal(selected.selection.tier, tier);
+      assert.equal(selected.selection.module, module);
+    }
+  }
+
+  for (const module of ['reasoning', 'execution', 'recovery', 'verification'] as const) {
+    assert.deepEqual(
+      selectCases({casesDir: suiteRoot, module}).selection.caseIds,
+      moduleCases[module],
+    );
+  }
 });
 
 test('the complete portable set admits both start states and rejects every counterexample', () => {
@@ -303,7 +350,7 @@ test('the complete portable set admits both start states and rejects every count
         assert.deepEqual(definition.grade.allowedWrites, []);
         assert.deepEqual(changed, [], `${definition.id}: empty solution must make no changes`);
       }
-      if (definition.schemaVersion === 4) {
+      if (definition.schemaVersion === 5) {
         const evidence = definition.evidence.knownGood;
         const behavior = gradeTrialBehavior(
           definition, evidence.terminalStatus, evidence.finalMessage, evidence.controlledEvents, grade,
@@ -318,7 +365,7 @@ test('the complete portable set admits both start states and rejects every count
     try {
       applyOverlay(definition, counterexample.root, 'counterexample');
       const grade = gradeCase(definition, counterexample.root, counterexample.before);
-      if (definition.schemaVersion === 4) {
+      if (definition.schemaVersion === 5) {
         const evidence = definition.evidence.knownBad;
         const behavior = gradeTrialBehavior(
           definition, evidence.terminalStatus, evidence.finalMessage, evidence.controlledEvents, grade,

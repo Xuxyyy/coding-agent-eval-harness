@@ -1,13 +1,17 @@
 export const LEGACY_CASE_SCHEMA_VERSION = 1 as const;
 export const PREVIOUS_CASE_SCHEMA_VERSION = 2 as const;
 export const MEASUREMENT_CASE_SCHEMA_VERSION = 3 as const;
-export const CASE_SCHEMA_VERSION = 4 as const;
+export const MODULE_CASE_SCHEMA_VERSION = 4 as const;
+export const CASE_SCHEMA_VERSION = 5 as const;
 
 export const CASE_LEVELS = ['focused', 'workflow'] as const;
 export type CaseLevel = (typeof CASE_LEVELS)[number];
 
 export const CASE_MODULES = ['reasoning', 'execution', 'recovery', 'verification'] as const;
 export type CaseModule = (typeof CASE_MODULES)[number];
+
+export const CASE_TIERS = ['baseline', 'challenge'] as const;
+export type CaseTier = (typeof CASE_TIERS)[number];
 
 export const CASE_HORIZONS = ['short', 'multi-stage', 'long-horizon'] as const;
 export type CaseHorizon = (typeof CASE_HORIZONS)[number];
@@ -109,7 +113,7 @@ export type MeasurementCaseDefinition = {
 };
 
 export type ModuleCaseDefinition = {
-  schemaVersion: typeof CASE_SCHEMA_VERSION;
+  schemaVersion: typeof MODULE_CASE_SCHEMA_VERSION;
   id: string;
   level: CaseLevel;
   primaryModule: CaseModule;
@@ -125,11 +129,17 @@ export type ModuleCaseDefinition = {
   dir: string;
 };
 
+export type TieredCaseDefinition = Omit<ModuleCaseDefinition, 'schemaVersion'> & {
+  schemaVersion: typeof CASE_SCHEMA_VERSION;
+  tier: CaseTier;
+};
+
 export type CaseDefinition =
   | LegacyCaseDefinition
   | VersionedCaseDefinition
   | MeasurementCaseDefinition
-  | ModuleCaseDefinition;
+  | ModuleCaseDefinition
+  | TieredCaseDefinition;
 
 export type FileChanges = {added: string[]; modified: string[]; deleted: string[]};
 export type CheckResult = {check: Check; ok: boolean; detail: string};

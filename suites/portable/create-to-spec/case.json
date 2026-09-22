@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "create-to-spec",
   "level": "focused",
+  "tier": "baseline",
   "primaryModule": "execution",
   "horizon": "short",
   "primaryQuality": "task-effectiveness",

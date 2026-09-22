@@ -46,6 +46,7 @@ function trial(overrides: Partial<TrialRecord> = {}): TrialRecord {
     adapter: 'codex',
     requestedModel: null,
     level: 'focused',
+    tier: 'baseline',
     primaryModule: 'execution',
     horizon: 'short',
     primaryQuality: 'task-effectiveness',
@@ -208,6 +209,9 @@ test('result and artifact readers reject unsafe paths, versions, identity mismat
 
     const manifestPath = join(root, selected.artifactManifestPath);
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    manifest.finalMessage = '';
+    writeFileSync(manifestPath, JSON.stringify(manifest));
+    assert.equal(readTrialArtifact(resultPath, selected).manifest.finalMessage, '');
     manifest.behaviorGrade.passed = false;
     writeFileSync(manifestPath, JSON.stringify(manifest));
     assert.throws(() => readTrialArtifact(resultPath, selected), /grades do not match/);
@@ -301,6 +305,29 @@ test('report schema 3 and artifact schema 1 remain readable', () => {
     const artifact = readTrialArtifact(resultPath, parsed.trials[0]!);
     assert.equal(artifact.manifest.schemaVersion, 1);
     assert.equal(artifact.diff.toString(), 'legacy patch\n');
+  } finally {
+    rmSync(root, {recursive: true, force: true});
+  }
+});
+
+test('report schema 5 remains readable without tier metadata', () => {
+  const root = mkdtempSync(join(tmpdir(), 'agent-eval-result-v5-'));
+  try {
+    const resultPath = join(root, 'legacy-modules.jsonl');
+    const legacyTrial = {...trial()} as Record<string, unknown>;
+    delete legacyTrial.tier;
+    const legacyReport = {
+      ...reportRecord(),
+      schemaVersion: 5,
+      caseSchemaVersions: {'case-a': 4},
+    };
+    writeFileSync(
+      resultPath,
+      `${JSON.stringify(legacyTrial)}\n${JSON.stringify(legacyReport)}\n`,
+    );
+    const parsed = readResultFile(resultPath);
+    assert.equal(parsed.schemaVersion, 5);
+    assert.equal(parsed.trials[0]!.primaryModule, 'execution');
   } finally {
     rmSync(root, {recursive: true, force: true});
   }

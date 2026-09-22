@@ -8,11 +8,13 @@ import {
   type WriteTrialArtifactInput,
 } from '../evidence/artifacts.js';
 import {aggregate} from '../reports/aggregate.js';
-import {profileVerdict} from '../reports/profile-verdict.js';
+import {selectionVerdict} from '../reports/selection-verdict.js';
 import {suiteContentHash} from '../suites/content-hash.js';
 import {
   REPORT_SCHEMA_VERSION,
   TRIAL_ARTIFACT_SCHEMA_VERSION,
+  type CaseModule,
+  type CaseTier,
   type RunReport,
   type TrialRecord,
 } from '../types/index.js';
@@ -25,7 +27,8 @@ export type RunOptions = {
   casesDir: string;
   caseIds?: string[];
   repeats?: number;
-  profile?: string;
+  tier?: CaseTier;
+  module?: CaseModule;
   maxSeconds?: number;
   model?: string;
   output?: string;
@@ -40,7 +43,8 @@ export type RunProgressEvent =
     caseIds: string[];
     repeats: number;
     total: number;
-    profileId: string | null;
+    tier: CaseTier | null;
+    module: CaseModule | null;
   }
   | {
     kind: 'trial-start';
@@ -84,7 +88,8 @@ export async function runEvaluation(options: RunOptions): Promise<RunResult> {
     caseIds: cases.map((item) => item.id),
     repeats: selection.repeats,
     total,
-    profileId: selection.profile?.profileId ?? null,
+    tier: selection.selection.tier,
+    module: selection.selection.module,
   });
 
   const adapter = options.adapter ?? adapterById(options.agent);
@@ -145,9 +150,10 @@ export async function runEvaluation(options: RunOptions): Promise<RunResult> {
     }
   }
 
-  const requirement = selection.profile === null
-    ? undefined
-    : {caseIds: selection.profile.caseIds, repeats: selection.profile.repeats};
+  const requirement = {
+    caseIds: selection.selection.caseIds,
+    repeats: selection.selection.repeats,
+  };
   const summary = aggregate(trials, requirement);
   const report: RunReport = {
     kind: 'report',
@@ -159,10 +165,8 @@ export async function runEvaluation(options: RunOptions): Promise<RunResult> {
     elapsedMs: Date.now() - started,
     node: process.version,
     platform: `${process.platform}-${process.arch}`,
-    repeats: selection.repeats,
-    selectedCaseIds: cases.map((item) => item.id),
-    profile: selection.profile,
-    profileVerdict: requirement === undefined ? null : profileVerdict(trials, requirement),
+    selection: selection.selection,
+    selectionVerdict: selectionVerdict(trials, requirement),
     maxSecondsCap: options.maxSeconds ?? null,
     suiteContentHash: suiteHash,
     artifactSchemaVersion: TRIAL_ARTIFACT_SCHEMA_VERSION,
@@ -209,11 +213,9 @@ export function formatSummary(result: RunResult): string {
   lines.push(
     `report\t${result.report.terminalStatus}\tpasses ${result.report.aggregate.passes.count}/${result.report.aggregate.passes.of}\terrors ${result.report.aggregate.errors}`,
   );
-  if (result.report.profile !== null) {
-    lines.push(
-      `profile\t${result.report.profile.profileId}\tverdict ${result.report.profileVerdict}`,
-    );
-  }
+  lines.push(
+    `selection\ttier ${result.report.selection.tier ?? 'all'}\tmodule ${result.report.selection.module ?? 'all'}\tverdict ${result.report.selectionVerdict}`,
+  );
   lines.push(`result\t${result.resultPath}`);
   return lines.join('\n');
 }

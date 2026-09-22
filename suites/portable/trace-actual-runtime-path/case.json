@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "trace-actual-runtime-path",
   "level": "workflow",
+  "tier": "challenge",
   "primaryModule": "reasoning",
   "horizon": "multi-stage",
   "primaryQuality": "repository-understanding",

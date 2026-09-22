@@ -53,7 +53,9 @@ test('CLI parses every supported argument', () => {
   );
   assert.match(HELP, /never a shell command/);
   assert.match(HELP, /--suite portable/);
-  assert.match(HELP, /--profile <id>/);
+  assert.match(HELP, /--tier <tier>/);
+  assert.match(HELP, /--module <module>/);
+  assert.match(HELP, /Version 2, 3, 4, 5, or 6/);
   assert.match(HELP, /agent-eval inspect/);
   assert.deepEqual(
     parseCliArgs(['inspect', '--result', 'out.jsonl', '--case', 'a', '--repeat', '2']),
@@ -87,10 +89,11 @@ test('CLI resolves the bundled portable suite and keeps custom suites explicit',
   );
 });
 
-test('CLI parses profiles and rejects identity-changing overrides', () => {
+test('CLI composes tier and module filters and rejects removed profiles and case conflicts', () => {
   assert.deepEqual(
     parseCliArgs([
-      'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite', '--profile', 'reasoning-v1',
+      'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite',
+      '--tier', 'baseline', '--module', 'reasoning', '--repeats', '2',
     ]),
     {
       help: false,
@@ -98,19 +101,54 @@ test('CLI parses profiles and rejects identity-changing overrides', () => {
         agent: 'acc',
         command: 'fake',
         casesDir: 'suite',
-        profile: 'reasoning-v1',
+        tier: 'baseline',
+        module: 'reasoning',
+        repeats: 2,
       },
     },
   );
-  for (const override of [['--case', 'a'], ['--repeats', '2']]) {
-    assert.throws(
-      () => parseCliArgs([
-        'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite',
-        '--profile', 'reasoning-v1', ...override,
-      ]),
-      /cannot be combined/,
-    );
-  }
+  assert.throws(
+    () => parseCliArgs([
+      'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite',
+      '--tier', 'baseline', '--case', 'a',
+    ]),
+    /cannot be combined/,
+  );
+  assert.throws(
+    () => parseCliArgs([
+      'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite',
+      '--profile', 'reasoning-v1',
+    ]),
+    /unknown argument/,
+  );
+  assert.throws(
+    () => parseCliArgs([
+      'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite',
+      '--tier', 'easy',
+    ]),
+    /baseline or challenge/,
+  );
+  assert.throws(
+    () => parseCliArgs([
+      'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite',
+      '--module', 'planning',
+    ]),
+    /reasoning, execution, recovery, or verification/,
+  );
+  assert.throws(
+    () => parseCliArgs([
+      'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite',
+      '--tier', 'baseline', '--tier', 'challenge',
+    ]),
+    /only once/,
+  );
+  assert.throws(
+    () => parseCliArgs([
+      'run', '--agent', 'acc', '--command', 'fake', '--cases', 'suite',
+      '--module', 'reasoning', '--module', 'execution',
+    ]),
+    /only once/,
+  );
 });
 
 test('CLI rejects missing, unknown, and invalid arguments', () => {
@@ -142,7 +180,7 @@ test('CLI rejects missing, unknown, and invalid arguments', () => {
   );
 });
 
-function runCli(executable: string, output: string, mode?: string, profile?: string) {
+function runCli(executable: string, output: string, mode?: string, filters: string[] = []) {
   return spawnSync(
     process.execPath,
     [
@@ -156,7 +194,7 @@ function runCli(executable: string, output: string, mode?: string, profile?: str
       resolve('suites/portable'),
       '--output',
       output,
-      ...(profile === undefined ? [] : ['--profile', profile]),
+      ...filters,
     ],
     {
       encoding: 'utf8',
@@ -173,17 +211,20 @@ test('built CLI runs all twenty-five cases end to end and writes a parseable ad 
     const run = runCli(executable, output);
     assert.equal(run.status, 0, `${run.stderr}\n${run.stdout}`);
     assert.match(run.stdout, /terminal\s+elapsed_ms\s+total_tokens/);
-    assert.match(run.stdout, /running 1\/25  accurate-change-handoff \(repeat 1\)/);
+    assert.match(run.stdout, /running 1\/25  already-correct-no-op \(repeat 1\)/);
     assert.match(run.stdout, /create-to-spec\s+1\s+pass/);
     assert.match(run.stdout, /create-to-spec\s+1\s+pass\s+true\s+true\s+completed\s+\d+\s+6/);
     assert.match(run.stdout, /report\s+completed\s+passes 25\/25/);
     const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
     assert.equal(records.length, 26);
     assert.deepEqual(records.slice(0, 25).map((record) => record.status), Array(25).fill('pass'));
-    assert.equal(records[25].schemaVersion, 5);
+    assert.equal(records[25].schemaVersion, 6);
     assert.equal(records[25].artifactSchemaVersion, 2);
-    assert.equal(records[25].profile, null);
-    assert.equal(records[25].profileVerdict, null);
+    assert.deepEqual(records[25].selection, {
+      suiteId: 'portable', tier: null, module: null,
+      caseIds: records.slice(0, 25).map((record) => record.caseId), repeats: 1,
+    });
+    assert.equal(records[25].selectionVerdict, 'met');
     assert.equal(records[25].suiteContentHash.length, 64);
     assert.deepEqual(records[25].cleanup, {
       workspaces: true,
@@ -246,12 +287,12 @@ test('built CLI runs then inspects structured evidence, including after bundle r
   }
 });
 
-test('built CLI runs recovery-v1 with separate repository and behavior grades', () => {
+test('built CLI filters recovery cases with separate repository and behavior grades', () => {
   const root = mkdtempSync(join(tmpdir(), 'agent-eval-cli-measurement-'));
   try {
     const executable = writeFakeAcc(root);
     const output = join(root, 'recovery.jsonl');
-    const run = runCli(executable, output, undefined, 'recovery-v1');
+    const run = runCli(executable, output, undefined, ['--module', 'recovery']);
     assert.equal(run.status, 0, `${run.stderr}\n${run.stdout}`);
     const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
     const trials = records.slice(0, -1);
@@ -265,7 +306,8 @@ test('built CLI runs recovery-v1 with separate repository and behavior grades', 
       'implemented', 'implemented', 'implemented',
     ]);
     assert.equal(trials.every((trial) => trial.repositoryPassed && trial.behaviorPassed), true);
-    assert.equal(report.profileVerdict, 'met');
+    assert.equal(report.selectionVerdict, 'met');
+    assert.equal(report.selection.module, 'recovery');
     const recovery = trials[0];
     assert.deepEqual(recovery.behaviorGrade.controlledEvents.events.map((event: {outcome: string}) => event.outcome), [
       'transient-failure', 'passed',
@@ -340,7 +382,7 @@ test('inspect explains version 2 results and rejects duplicate or unsafe artifac
   }
 });
 
-test('built CLI preserves profile order and distinguishes every verdict', () => {
+test('built CLI preserves filtered order and distinguishes every verdict', () => {
   const root = mkdtempSync(join(tmpdir(), 'agent-eval-cli-profile-'));
   try {
     const executable = writeFakeAcc(root);
@@ -351,18 +393,18 @@ test('built CLI preserves profile order and distinguishes every verdict', () => 
     ];
     for (const outcome of outcomes) {
       const output = join(root, `${outcome.verdict}.jsonl`);
-      const run = runCli(executable, output, outcome.mode, 'recovery-v1');
+      const run = runCli(executable, output, outcome.mode, ['--module', 'recovery']);
       assert.equal(run.status, outcome.status, run.stderr);
-      assert.match(run.stdout, new RegExp(`profile\\s+recovery-v1\\s+verdict ${outcome.verdict}`));
+      assert.match(run.stdout, new RegExp(`selection tier all\\s+module recovery\\s+verdict ${outcome.verdict}`));
       const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
       const report = records.at(-1);
       assert.deepEqual(
         records.slice(0, -1).map((record) => record.caseId),
         ['recover-transient-verification', 'fallback-after-tool-failure', 'resume-partial-migration'],
       );
-      assert.equal(report.profile.profileId, 'recovery-v1');
-      assert.equal(report.profileVerdict, outcome.verdict);
-      assert.deepEqual(report.selectedCaseIds, report.profile.caseIds);
+      assert.equal(report.selection.module, 'recovery');
+      assert.equal(report.selectionVerdict, outcome.verdict);
+      assert.deepEqual(report.selection.caseIds, records.slice(0, -1).map((record) => record.caseId));
       assert.deepEqual(
         report.aggregate.byCase.map((item: {complete: boolean}) => item.complete),
         [true, true, true],
@@ -373,14 +415,14 @@ test('built CLI preserves profile order and distinguishes every verdict', () => 
   }
 });
 
-test('built CLI runs reasoning-v1 in reviewed order and exposes module evidence', () => {
+test('built CLI runs reasoning module in reviewed order and exposes module evidence', () => {
   const root = mkdtempSync(join(tmpdir(), 'agent-eval-cli-workflow-'));
   try {
     const executable = writeFakeAcc(root);
     const output = join(root, 'reasoning.jsonl');
-    const run = runCli(executable, output, undefined, 'reasoning-v1');
+    const run = runCli(executable, output, undefined, ['--module', 'reasoning']);
     assert.equal(run.status, 0, run.stderr);
-    assert.match(run.stdout, /profile\s+reasoning-v1\s+verdict met/);
+    assert.match(run.stdout, /selection tier all\s+module reasoning\s+verdict met/);
     const records = readFileSync(output, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
     const trials = records.slice(0, -1);
     const report = records.at(-1);
@@ -394,10 +436,9 @@ test('built CLI runs reasoning-v1 in reviewed order and exposes module evidence'
       'migrate-cross-package-api',
     ]);
     assert.equal(trials.every((record) => record.status === 'pass'), true);
-    assert.equal(report.profile.profileId, 'reasoning-v1');
-    assert.equal(report.profile.module, 'reasoning');
-    assert.equal(report.profile.repeats, 1);
-    assert.equal(report.profileVerdict, 'met');
+    assert.equal(report.selection.module, 'reasoning');
+    assert.equal(report.selection.repeats, 1);
+    assert.equal(report.selectionVerdict, 'met');
     assert.deepEqual(report.aggregate.byPrimaryModule, [
       {module: 'reasoning', total: 7, scored: 7, errors: 0, passes: {count: 7, of: 7, rate: 1}},
     ]);

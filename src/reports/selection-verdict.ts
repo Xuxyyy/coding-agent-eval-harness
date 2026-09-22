@@ -1,10 +1,10 @@
-import type {ProfileVerdict, TrialRecord} from '../types/index.js';
+import type {SelectionVerdict, TrialRecord} from '../types/index.js';
 import {repeatsComplete, type RepeatRequirement} from './shared.js';
 
-export function profileVerdict(
+export function selectionVerdict(
   trials: readonly TrialRecord[],
   requirement: RepeatRequirement,
-): ProfileVerdict {
+): SelectionVerdict {
   const requiredIds = new Set(requirement.caseIds);
   if (trials.some((trial) => !requiredIds.has(trial.caseId))) return 'incomplete';
   for (const caseId of requirement.caseIds) {

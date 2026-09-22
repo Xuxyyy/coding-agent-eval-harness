@@ -75,6 +75,13 @@ const validV4 = {
   },
 };
 
+const validV5 = {
+  ...validV4,
+  schemaVersion: 5,
+  id: 'sample-v5',
+  tier: 'baseline',
+};
+
 test('parseCase accepts the complete neutral schema', () => {
   const parsed = parseCase(valid, 'case.json', '/case');
   assert.equal(parsed.id, 'sample');
@@ -129,6 +136,18 @@ test('parseCase accepts version 4 modules, horizons, and probe strategies', () =
       },
     }, 'case.json', '/case'),
     /command probes may expect only passed or failed/,
+  );
+});
+
+test('parseCase accepts version 5 tiers and rejects invalid tier values', () => {
+  const parsed = parseCase(validV5, 'case.json', '/case');
+  assert.equal(parsed.schemaVersion, 5);
+  if (parsed.schemaVersion !== 5) assert.fail('expected version 5');
+  assert.equal(parsed.tier, 'baseline');
+  assert.equal(parsed.primaryModule, 'recovery');
+  assert.throws(
+    () => parseCase({...validV5, tier: 'advanced'}, 'case.json', '/case'),
+    /must be one of/,
   );
 });
 
@@ -237,6 +256,7 @@ test('parseSuite preserves profile order and rejects malformed profiles', () => 
     ],
   };
   const parsed = parseSuite(manifest, 'suite.json', '/suite', cases);
+  if (!('profiles' in parsed)) assert.fail('expected profile suite');
   assert.deepEqual(parsed.profiles.map((profile) => profile.id), ['smoke-v1', 'foundation-v1']);
   assert.throws(
     () => parseSuite({...manifest, extra: true}, 'suite.json', '/suite', cases),
@@ -278,6 +298,33 @@ test('parseSuite rejects version 1 cases from conformance profiles', () => {
       [legacy],
     ),
     /version 1 case without conformance semantics/,
+  );
+});
+
+test('parseSuite version 3 preserves exact case order and requires every version 5 case', () => {
+  const first = parseCase(validV5, 'first.json', '/first');
+  const second = parseCase({...validV5, id: 'second-v5', tier: 'challenge'}, 'second.json', '/second');
+  const cases = [first, second];
+  const manifest = {
+    schemaVersion: 3,
+    id: 'portable',
+    caseOrder: ['second-v5', 'sample-v5'],
+  };
+  const parsed = parseSuite(manifest, 'suite.json', '/suite', cases);
+  assert.equal(parsed.schemaVersion, 3);
+  if (parsed.schemaVersion !== 3) assert.fail('expected ordered suite');
+  assert.deepEqual(parsed.caseOrder, ['second-v5', 'sample-v5']);
+  assert.throws(
+    () => parseSuite({...manifest, caseOrder: ['sample-v5']}, 'suite.json', '/suite', cases),
+    /every version 5 case exactly once/,
+  );
+  assert.throws(
+    () => parseSuite({...manifest, caseOrder: ['sample-v5', 'sample-v5']}, 'suite.json', '/suite', cases),
+    /duplicates/,
+  );
+  assert.throws(
+    () => parseSuite(manifest, 'suite.json', '/suite', [parseCase(validV4, 'old.json', '/old')]),
+    /unknown case|every version 5 case/,
   );
 });
 

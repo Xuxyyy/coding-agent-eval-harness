@@ -4,6 +4,7 @@ import {
   type RunOptions,
 } from '../engine/run-evaluation.js';
 import type {AgentId} from '../adapters/types.js';
+import type {CaseModule, CaseTier} from '../types/index.js';
 import {existsSync, realpathSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -27,7 +28,8 @@ Suite selection (choose one):
   --cases <directory>       Trusted custom case-suite directory
 
 Options:
-  --profile <id>            Run an exact versioned profile
+  --tier <tier>             Filter by baseline or challenge
+  --module <module>         Filter by reasoning, execution, recovery, or verification
   --case <id>               Select one case; repeat to select more
   --repeats <number>        Sequential attempts per case (default: 1)
   --max-seconds <number>    Cap each case's declared time limit
@@ -36,7 +38,7 @@ Options:
   -h, --help                Show this help
 
 Inspect:
-  --result <jsonl>          Version 2, 3, 4, or 5 result JSONL
+  --result <jsonl>          Version 2, 3, 4, 5, or 6 result JSONL
   --case <id>               Select one exact case ID
   --repeat <number>         Select one exact repeat number
 `;
@@ -104,7 +106,8 @@ export function parseCliArgs(args: string[]): CliParse {
   let casesDir: string | undefined;
   let suite: string | undefined;
   let repeats: number | undefined;
-  let profile: string | undefined;
+  let tier: CaseTier | undefined;
+  let module: CaseModule | undefined;
   let maxSeconds: number | undefined;
   let model: string | undefined;
   let output: string | undefined;
@@ -128,8 +131,23 @@ export function parseCliArgs(args: string[]): CliParse {
       if (suite !== 'portable') throw new Error('--suite must be portable');
     } else if (flag === '--case') {
       caseIds.push(value(args, ++index, flag));
-    } else if (flag === '--profile') {
-      profile = value(args, ++index, flag);
+    } else if (flag === '--tier') {
+      if (tier !== undefined) throw new Error('--tier may be provided only once');
+      const selected = value(args, ++index, flag);
+      if (selected !== 'baseline' && selected !== 'challenge') {
+        throw new Error('--tier must be baseline or challenge');
+      }
+      tier = selected;
+    } else if (flag === '--module') {
+      if (module !== undefined) throw new Error('--module may be provided only once');
+      const selected = value(args, ++index, flag);
+      if (
+        selected !== 'reasoning' && selected !== 'execution' &&
+        selected !== 'recovery' && selected !== 'verification'
+      ) {
+        throw new Error('--module must be reasoning, execution, recovery, or verification');
+      }
+      module = selected;
     } else if (flag === '--repeats') {
       repeats = positiveInteger(value(args, ++index, flag), flag);
     } else if (flag === '--max-seconds') {
@@ -150,8 +168,8 @@ export function parseCliArgs(args: string[]): CliParse {
   if (casesDir === undefined && suite === undefined) {
     throw new Error('one of --suite or --cases is required');
   }
-  if (profile !== undefined && (caseIds.length > 0 || repeats !== undefined)) {
-    throw new Error('--profile cannot be combined with --case or --repeats');
+  if (caseIds.length > 0 && (tier !== undefined || module !== undefined)) {
+    throw new Error('--case cannot be combined with --tier or --module');
   }
   return {
     help: false,
@@ -159,8 +177,10 @@ export function parseCliArgs(args: string[]): CliParse {
       agent,
       command,
       casesDir: casesDir ?? bundledSuitePath(suite!),
-      ...(profile === undefined ? {repeats: repeats ?? 1} : {profile}),
+      repeats: repeats ?? 1,
       ...(caseIds.length === 0 ? {} : {caseIds}),
+      ...(tier === undefined ? {} : {tier}),
+      ...(module === undefined ? {} : {module}),
       ...(maxSeconds === undefined ? {} : {maxSeconds}),
       ...(model === undefined ? {} : {model}),
       ...(output === undefined ? {} : {output}),

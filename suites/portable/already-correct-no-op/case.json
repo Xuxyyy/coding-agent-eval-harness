@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "already-correct-no-op",
   "level": "focused",
+  "tier": "baseline",
   "primaryModule": "reasoning",
   "horizon": "short",
   "primaryQuality": "judgment-autonomy",

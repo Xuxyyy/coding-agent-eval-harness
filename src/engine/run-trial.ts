@@ -100,7 +100,10 @@ export async function runTrial(options: RunTrialOptions): Promise<TrialRecord> {
     const fixture = createFixture(definition);
     root = fixture.root;
     initialCommit = fixture.initialCommit;
-    if (definition.schemaVersion === 3 || definition.schemaVersion === 4) {
+    if (
+      definition.schemaVersion === 3 || definition.schemaVersion === 4 ||
+      definition.schemaVersion === 5
+    ) {
       control = await createTrialControl(definition, root);
     }
     const maxSeconds = options.maxSeconds === undefined
@@ -172,8 +175,13 @@ export async function runTrial(options: RunTrialOptions): Promise<TrialRecord> {
     adapter: options.agent,
     requestedModel: options.model ?? null,
     level: definition.schemaVersion === 1 ? null : definition.level,
-    primaryModule: definition.schemaVersion === 4 ? definition.primaryModule : null,
-    horizon: definition.schemaVersion === 4 ? definition.horizon : null,
+    tier: definition.schemaVersion === 5 ? definition.tier : null,
+    primaryModule: definition.schemaVersion === 4 || definition.schemaVersion === 5
+      ? definition.primaryModule
+      : null,
+    horizon: definition.schemaVersion === 4 || definition.schemaVersion === 5
+      ? definition.horizon
+      : null,
     primaryQuality: definition.schemaVersion === 1 ? null : definition.primaryQuality,
     supportingQualities: definition.schemaVersion === 1 ? [] : definition.supportingQualities,
     startState: definition.schemaVersion === 1 ? null : definition.startState,

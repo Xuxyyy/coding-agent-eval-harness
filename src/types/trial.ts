@@ -5,6 +5,7 @@ import type {
   CaseLevel,
   CaseModule,
   CaseQuality,
+  CaseTier,
   CheckResult,
   ExpectedDisposition,
   FileChanges,
@@ -20,6 +21,7 @@ export type TrialRecord = {
   adapter: string;
   requestedModel: string | null;
   level: CaseLevel | null;
+  tier: CaseTier | null;
   primaryModule: CaseModule | null;
   horizon: CaseHorizon | null;
   primaryQuality: CaseQuality | null;

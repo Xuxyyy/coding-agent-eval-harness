@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "add-regression-coverage",
   "level": "focused",
+  "tier": "baseline",
   "primaryModule": "verification",
   "horizon": "short",
   "primaryQuality": "verification-quality",

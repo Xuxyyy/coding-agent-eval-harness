@@ -42,7 +42,8 @@ export function gradeTrialBehavior(
   const dispositionPassed = terminalStatus === 'completed' && (
     disposition === null || disposition === 'implemented' || noRepositoryChanges(repositoryGrade)
   );
-  const finalChecks = definition.schemaVersion === 3 || definition.schemaVersion === 4
+  const finalChecks = definition.schemaVersion === 3 ||
+    definition.schemaVersion === 4 || definition.schemaVersion === 5
     ? [
       ...definition.trialChecks.finalResponse.required.map((pattern) => {
         const ok = normalizedFinalMessage !== null && new RegExp(pattern, 'iu').test(normalizedFinalMessage);
@@ -68,7 +69,8 @@ export function gradeTrialBehavior(
       }),
     ]
     : [];
-  const controlledChecks = definition.schemaVersion === 3 || definition.schemaVersion === 4
+  const controlledChecks = definition.schemaVersion === 3 ||
+    definition.schemaVersion === 4 || definition.schemaVersion === 5
     ? definition.trialChecks.controlledEvents.map((check) => {
       const actual = events
         .filter((event) => event.probeId === check.probeId)

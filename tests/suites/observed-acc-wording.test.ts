@@ -15,7 +15,7 @@ const observedResponses = [
   },
   {
     caseId: 'block-on-missing-contract',
-    finalMessage: 'This is a case where I should stop and ask rather than guess. The two options are mutually incompatible: wrapped or bare. Which format does the deployed downstream consumer require?',
+    finalMessage: 'The README is explicit that this choice must come from the user before implementation. Any implementation I write now is a coin flip. Which format does the deployed consumer require: wrapped or bare? I will implement it as soon as you tell me which.',
   },
   {
     caseId: 'preserve-user-wip',
@@ -26,7 +26,7 @@ const observedResponses = [
 test('portable behavior checks accept valid wording observed in a live ACC run', () => {
   for (const observed of observedResponses) {
     const definition = loadCase(resolve(casesRoot, observed.caseId));
-    if (definition.schemaVersion !== 4) throw new Error(`${observed.caseId}: expected schema version 4`);
+    if (definition.schemaVersion !== 5) throw new Error(`${observed.caseId}: expected schema version 5`);
     const fixture = createFixture(definition);
     try {
       if (definition.startState === 'unsolved') applyOverlay(definition, fixture.root, 'solution');

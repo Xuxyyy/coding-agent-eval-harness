@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "restore-cli-error-contract",
   "level": "workflow",
+  "tier": "challenge",
   "primaryModule": "verification",
   "horizon": "multi-stage",
   "primaryQuality": "verification-quality",

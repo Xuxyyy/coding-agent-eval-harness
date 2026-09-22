@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "resolve-conflict-preserving-behavior",
   "level": "focused",
+  "tier": "baseline",
   "primaryModule": "execution",
   "horizon": "short",
   "primaryQuality": "user-work-protection",

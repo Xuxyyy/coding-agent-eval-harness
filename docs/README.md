@@ -2,10 +2,10 @@
 
 The current public contract is described by the following documents:
 
-- [Four-module suite taxonomy](suite-taxonomy.md): module definitions,
-  dimensions, profile membership, and coverage boundaries.
-- [Four-module v1 verification](four-module-v1-verification.md): current
-  offline acceptance evidence for the 25-case portable suite.
+- [Two-dimensional suite taxonomy](suite-taxonomy.md): tier and module
+  definitions, exact membership, and coverage boundaries.
+- [Two-dimensional suite verification](two-dimensional-suite-verification.md):
+  current offline acceptance evidence for the 25-case portable suite.
 - [Portable suite reference](../suites/portable/README.md): case inventory,
   fixture rules, and controlled-probe behavior.
 
@@ -18,6 +18,7 @@ than current usage guidance:
 - [Workflow cases verification](workflow-cases-verification.md)
 - [Stage 1 complete measurement verification](stage-1-complete-measurement-verification.md)
 - [Portable suite v2 verification](portable-v2-verification.md)
+- [Four-module v1 verification](four-module-v1-verification.md)
 
 Use the repository README and current contract documents when running the
 harness. Historical records exist to explain how the design and acceptance

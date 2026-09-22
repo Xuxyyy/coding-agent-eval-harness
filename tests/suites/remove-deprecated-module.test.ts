@@ -8,7 +8,7 @@ import {gradeTrialBehavior} from '../../src/graders/grade-trial-behavior.js';
 import {loadCase} from '../../src/suites/cases.js';
 
 const definition = loadCase(resolve('suites/portable/remove-deprecated-module'));
-if (definition.schemaVersion !== 4) throw new Error('expected version 4 case');
+if (definition.schemaVersion !== 5) throw new Error('expected version 5 case');
 
 test('deletion case admits the narrow removal and known-good handoff', () => {
   const fixture = createFixture(definition);

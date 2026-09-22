@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   existsSync,
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -14,6 +15,7 @@ import test from 'node:test';
 import type {AgentAdapter} from '../../src/adapters/registry.js';
 import {writeFixtureFile} from '../../src/environments/fixture.js';
 import {runEvaluation, suiteContentHash} from '../../src/engine/run-evaluation.js';
+import {selectCases} from '../../src/engine/select-cases.js';
 import {loadCases} from '../../src/suites/cases.js';
 import {readTrialArtifact} from '../../src/evidence/artifacts.js';
 
@@ -91,7 +93,7 @@ test('runEvaluation persists repeats, aggregation, metadata, raw output, and cle
     assert.equal(result.exitCode, 0);
     assert.equal(result.trials.length, 2);
     assert.equal(result.report.agentExecutableVersion, 'fake 1.0');
-    assert.equal(result.report.schemaVersion, 5);
+    assert.equal(result.report.schemaVersion, 6);
     assert.equal(result.report.artifactSchemaVersion, 2);
     assert.equal(result.report.requestedModel, 'exact-model');
     assert.equal(result.report.aggregate.passes.count, 2);
@@ -247,21 +249,45 @@ test('suiteContentHash is stable and changes with suite content', () => {
   }
 });
 
-test('runEvaluation rejects profile overrides and unknown profiles', async () => {
+test('selection composes tier and module filters and rejects case conflicts', () => {
   const base = {
-    agent: 'acc' as const,
-    command: 'fake',
     casesDir: resolve('suites/portable'),
-    adapter: solvingAdapter,
   };
-  await assert.rejects(
-    runEvaluation({...base, profile: 'reasoning-v1', repeats: 1}),
+  const result = selectCases({
+    ...base,
+    tier: 'baseline',
+    module: 'reasoning',
+    repeats: 1,
+  });
+  assert.deepEqual(result.selection.caseIds, [
+    'already-correct-no-op', 'block-on-missing-contract', 'diagnose-root-cause',
+  ]);
+  assert.throws(
+    () => selectCases({...base, caseIds: ['create-to-spec'], tier: 'baseline'}),
     /cannot be combined/,
   );
-  await assert.rejects(
-    runEvaluation({...base, profile: 'missing-v1'}),
-    /unknown profile/,
-  );
+});
+
+test('selection rejects an empty tier and module intersection', () => {
+  const root = mkdtempSync(join(tmpdir(), 'agent-eval-empty-selection-'));
+  try {
+    cpSync(
+      resolve('suites/portable/already-correct-no-op'),
+      join(root, 'already-correct-no-op'),
+      {recursive: true},
+    );
+    writeFileSync(join(root, 'suite.json'), JSON.stringify({
+      schemaVersion: 3,
+      id: 'single-case',
+      caseOrder: ['already-correct-no-op'],
+    }));
+    assert.throws(
+      () => selectCases({casesDir: root, tier: 'challenge', module: 'reasoning'}),
+      /no cases match/,
+    );
+  } finally {
+    rmSync(root, {recursive: true, force: true});
+  }
 });
 
 test('runEvaluation preserves ad hoc version 1 case execution', async () => {
@@ -306,8 +332,9 @@ test('runEvaluation preserves ad hoc version 1 case execution', async () => {
       },
     });
     assert.equal(result.exitCode, 0);
-    assert.equal(result.report.profile, null);
-    assert.equal(result.report.profileVerdict, null);
+    assert.equal(result.report.selection.suiteId, null);
+    assert.equal(result.report.selection.tier, null);
+    assert.equal(result.report.selectionVerdict, 'met');
     assert.equal(result.trials[0]!.level, null);
     assert.equal(result.trials[0]!.primaryQuality, null);
   } finally {

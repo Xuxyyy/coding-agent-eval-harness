@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "resume-partial-migration",
   "level": "workflow",
+  "tier": "challenge",
   "primaryModule": "recovery",
   "horizon": "multi-stage",
   "primaryQuality": "recovery-resilience",

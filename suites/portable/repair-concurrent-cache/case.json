@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "repair-concurrent-cache",
   "level": "workflow",
+  "tier": "challenge",
   "primaryModule": "execution",
   "horizon": "multi-stage",
   "primaryQuality": "task-effectiveness",

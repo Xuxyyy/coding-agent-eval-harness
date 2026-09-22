@@ -1,91 +1,31 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "portable",
-  "profiles": [
-    {
-      "id": "reasoning-v1",
-      "module": "reasoning",
-      "caseIds": [
-        "already-correct-no-op",
-        "block-on-missing-contract",
-        "diagnose-root-cause",
-        "repair-stale-test-contract",
-        "trace-actual-runtime-path",
-        "repair-config-flow",
-        "migrate-cross-package-api"
-      ],
-      "repeats": 1
-    },
-    {
-      "id": "execution-v1",
-      "module": "execution",
-      "caseIds": [
-        "create-to-spec",
-        "fix-failing-test",
-        "preserve-user-wip",
-        "follow-repository-instructions",
-        "remove-deprecated-module",
-        "resolve-conflict-preserving-behavior",
-        "regenerate-derived-source",
-        "preserve-header-contract",
-        "refactor-shared-validation",
-        "repair-concurrent-cache",
-        "add-timeout-option-workflow"
-      ],
-      "repeats": 1
-    },
-    {
-      "id": "recovery-v1",
-      "module": "recovery",
-      "caseIds": [
-        "recover-transient-verification",
-        "fallback-after-tool-failure",
-        "resume-partial-migration"
-      ],
-      "repeats": 1
-    },
-    {
-      "id": "verification-v1",
-      "module": "verification",
-      "caseIds": [
-        "add-regression-coverage",
-        "accurate-change-handoff",
-        "restore-cli-error-contract",
-        "verify-cross-layer-fix"
-      ],
-      "repeats": 1
-    },
-    {
-      "id": "full-agent-v1",
-      "module": "all",
-      "caseIds": [
-        "already-correct-no-op",
-        "block-on-missing-contract",
-        "diagnose-root-cause",
-        "repair-stale-test-contract",
-        "trace-actual-runtime-path",
-        "repair-config-flow",
-        "migrate-cross-package-api",
-        "create-to-spec",
-        "fix-failing-test",
-        "preserve-user-wip",
-        "follow-repository-instructions",
-        "remove-deprecated-module",
-        "resolve-conflict-preserving-behavior",
-        "regenerate-derived-source",
-        "preserve-header-contract",
-        "refactor-shared-validation",
-        "repair-concurrent-cache",
-        "add-timeout-option-workflow",
-        "recover-transient-verification",
-        "fallback-after-tool-failure",
-        "resume-partial-migration",
-        "add-regression-coverage",
-        "accurate-change-handoff",
-        "restore-cli-error-contract",
-        "verify-cross-layer-fix"
-      ],
-      "repeats": 1
-    }
+  "caseOrder": [
+    "already-correct-no-op",
+    "block-on-missing-contract",
+    "diagnose-root-cause",
+    "create-to-spec",
+    "fix-failing-test",
+    "preserve-user-wip",
+    "follow-repository-instructions",
+    "remove-deprecated-module",
+    "resolve-conflict-preserving-behavior",
+    "recover-transient-verification",
+    "fallback-after-tool-failure",
+    "add-regression-coverage",
+    "accurate-change-handoff",
+    "repair-stale-test-contract",
+    "trace-actual-runtime-path",
+    "repair-config-flow",
+    "migrate-cross-package-api",
+    "regenerate-derived-source",
+    "preserve-header-contract",
+    "refactor-shared-validation",
+    "repair-concurrent-cache",
+    "add-timeout-option-workflow",
+    "resume-partial-migration",
+    "restore-cli-error-contract",
+    "verify-cross-layer-fix"
   ]
 }
